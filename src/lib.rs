@@ -87,34 +87,56 @@ impl<'image, T> ImageEditor<'image, T> {
 impl<'image, T> Widget for ImageEditor<'image, T> {
     fn ui(self, ui: &mut Ui) -> egui::Response {
         let (width, height) = self.image.dimensions();
-        //ui.allocate_response(, Sense::click_and_drag())
-        todo!()
+        let size = Vec2::new(width as f32, height as f32);
+        let resp = ui.allocate_response(size, Sense::click_and_drag());
+
+        let painter = ui.painter();
+        ui.ctx().data(|r| {
+            painter.rect_filled(Rect::from_min_size(Pos2::ZERO, Vec2::splat(200.)), 0.0, Color32::WHITE);
+        }); /*r.get_temp_mut_or_insert_with(self.id_salt, ImageEditorImpl::new));*/
+
+        //self.just_draw(ui.painter(), resp);
+
+        resp
     }
 }
 
 struct ImageEditorImpl {
-    tiles: HashMap<(isize, isize), (Rect, TextureId)>,
+    tiles: HashMap<(isize, isize), TextureId>,
     texture_width: usize,
 }
 
 impl ImageEditorImpl {
-    fn upload<T: PixelInterface>(source: &mut impl Image<Pixel = T>, ctx: &egui::Context) -> Self {
+    fn new(ctx: &egui::Context) -> Self {
         const MAX_TEXTURE_SIZE: usize = 4096;
-
         let texture_width = ctx.fonts(|r| r.max_texture_side()).min(MAX_TEXTURE_SIZE);
+        Self {
+            tiles: Default::default(),
+            texture_width,
+        }
+    }
 
+    fn draw<T: PixelInterface>(painter: &mut Painter, source: &mut impl Image<Pixel = T>, pos: Pos2) -> Self {
+        /*
         let mut tiles = HashMap::new();
 
         let (x_range, y_range) = source.image_boundaries();
-        for y in y_range.clone().step_by(texture_width) {
-            let remain_y = (y_range.end() - y).min(texture_width as isize);
-            for x in x_range.clone().step_by(texture_width) {
-                let remain_x = (x_range.end() - x).min(texture_width as isize);
+        let (width, height) = source.dimensions();
+        let (x_steps, y_steps) = (width / texture_width, height / texture_width);
+
+        for tile_y in 0..y_steps {
+            let tile_image_y = tile_y * width;
+            let remain_y = (y_range.end() - tile_y).min(texture_width as isize);
+            for tile_x in 0..x_steps {
+                let tile_image_x = tile_x * texture_width;
+                let remain_x = (x_range.end() - tile_x).min(texture_width as isize);
 
                 let rect = Rect::from_min_size(
-                    Pos2::new(x as _, y as _),
+                    Vec2::new(tile_x as _, tile_y as _),
                     Vec2::new(remain_x as _, remain_y as _),
                 );
+                todo!()
+                /*
                 let crop = source.crop(x..=x+remain_x-1, y..=y+remain_x-1);
                 let region = sample_to_image(&crop);
 
@@ -125,6 +147,7 @@ impl ImageEditorImpl {
                 );
 
                 tiles.insert((x, y), (rect, tex));
+                */
             }
         }
 
@@ -132,14 +155,18 @@ impl ImageEditorImpl {
             tiles,
             texture_width,
         }
+        */
+        todo!()
     }
 
-    fn draw(&self, painter: &Painter) {
+    /*
+    fn draw(&self, painter: &Painter, pos: Pos2) {
         let uv = Rect::from_min_size(Pos2::ZERO, Vec2::splat(1.));
-        for (_, (rect, tex)) in &self.tiles {
+        for ((x, y), tex) in &self.tiles {
             painter.image(*tex, *rect, uv, Color32::WHITE);
         }
     }
+    */
 }
 
 fn sample_to_image<T: PixelInterface>(source: &impl Image<Pixel = T>) -> ColorImage {
