@@ -5,7 +5,7 @@ use egui::{
 };
 
 pub trait Image {
-    type Pixel: PixelInterface;
+    type Pixel;
     /// Gets the pixel at `(x, y)`
     /// Allowed to panic outside of image_boundaries if `set_pixel_out_of_bounds` is `false`.
     fn get_pixel(&self, x: isize, y: isize) -> Self::Pixel;
@@ -102,12 +102,10 @@ impl ImageEditorImpl {
         let mut tiles = HashMap::new();
 
         let (x_range, y_range) = source.image_boundaries();
-        for y in y_range.step_by(MAX_TEXTURE_SIZE) {
-            //let (_, y_range) = source.image_boundaries();
-            let remain_y = (y_range.end() - y).min(MAX_TEXTURE_SIZE);
-            for x in x_range.step_by(MAX_TEXTURE_SIZE) {
-                //let (x_range, _) = source.image_boundaries();
-                let remain_x = (x_range.end() - x).min(MAX_TEXTURE_SIZE);
+        for y in y_range.clone().step_by(texture_width) {
+            let remain_y = (y_range.end() - y).min(texture_width as isize);
+            for x in x_range.clone().step_by(texture_width) {
+                let remain_x = (x_range.end() - x).min(texture_width as isize);
 
                 let rect = Rect::from_min_size(
                     Pos2::new(x as _, y as _),
@@ -140,6 +138,7 @@ impl ImageEditorImpl {
 }
 
 fn sample_to_image<T>(source: &dyn Image<Pixel = T>) -> ColorImage {
+    let (x_range, y_range) = source.image_boundaries();
     todo!()
 }
 
@@ -149,7 +148,17 @@ pub struct Crop<Pixel, I: Image<Pixel = Pixel>> {
     image: I,
 }
 
-impl<Pixel: PixelInterface, I: Image<Pixel = Pixel>> Image for Crop<Pixel, I>
+trait ImageExt: Image + Sized {
+    fn crop(self, x_range: RangeInclusive<isize>, y_range: RangeInclusive<isize>) -> Crop<Self::Pixel, Self> {
+        Crop {
+            x_range,
+            y_range,
+            image: self,
+        }
+    }
+}
+
+impl<Pixel, I: Image<Pixel = Pixel>> Image for Crop<Pixel, I>
 {
     type Pixel = Pixel;
     fn get_pixel(&self, x: isize, y: isize) -> Self::Pixel {
