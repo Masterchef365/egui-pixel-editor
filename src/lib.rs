@@ -94,7 +94,7 @@ struct ImageEditorImpl {
 }
 
 impl ImageEditorImpl {
-    fn upload<T>(source: &dyn Image<Pixel = T>, ctx: &egui::Context) -> Self {
+    fn upload<T: PixelInterface>(source: &mut (impl Image<Pixel = T> + Sized), ctx: &egui::Context) -> Self {
         const MAX_TEXTURE_SIZE: usize = 4096;
 
         let texture_width = ctx.fonts(|r| r.max_texture_side()).min(MAX_TEXTURE_SIZE);
@@ -111,7 +111,8 @@ impl ImageEditorImpl {
                     Pos2::new(x as _, y as _),
                     Vec2::new(remain_x as _, remain_y as _),
                 );
-                let region = sample_to_image(source);
+                let crop = source.crop(x..=x+remain_x-1, y..=y+remain_x-1);
+                let region = sample_to_image(&crop);
 
                 let tex = ctx.tex_manager().write().alloc(
                     format!("Tile {x}, {y}"),
@@ -137,19 +138,32 @@ impl ImageEditorImpl {
     }
 }
 
-fn sample_to_image<T>(source: &dyn Image<Pixel = T>) -> ColorImage {
+fn sample_to_image<T: PixelInterface>(source: &impl Image<Pixel = T>) -> ColorImage {
     let (x_range, y_range) = source.image_boundaries();
-    todo!()
+    let mut pixels = vec![];
+    let width: usize = (x_range.end() - x_range.start()).try_into().expect("Invalid width range");
+    let height: usize = (y_range.end() - y_range.start()).try_into().expect("Invalid height range");
+
+    for y in y_range {
+        for x in x_range.clone() {
+            pixels.push(source.get_pixel(x, y).as_rgba());
+        }
+    }
+
+    ColorImage {
+        size: [width as usize, height as usize],
+        pixels,
+    }
 }
 
-pub struct Crop<I: Image> {
+pub struct Crop<'image, I: Image> {
     x_range: RangeInclusive<isize>,
     y_range: RangeInclusive<isize>,
-    image: I,
+    image: &'image mut I,
 }
 
 trait ImageExt: Image + Sized {
-    fn crop(self, x_range: RangeInclusive<isize>, y_range: RangeInclusive<isize>) -> Crop<Self> {
+    fn crop(&mut self, x_range: RangeInclusive<isize>, y_range: RangeInclusive<isize>) -> Crop<Self> {
         Crop {
             x_range,
             y_range,
@@ -158,8 +172,9 @@ trait ImageExt: Image + Sized {
     }
 }
 
-impl<I: Image> Image for Crop<I>
-{
+impl<T: Image + Sized> ImageExt for T {}
+
+impl<I: Image> Image for Crop<'_, I> {
     type Pixel = I::Pixel;
     fn get_pixel(&self, x: isize, y: isize) -> Self::Pixel {
         assert!(
