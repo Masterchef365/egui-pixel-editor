@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::RangeInclusive};
 
 use egui::{
-    Color32, ColorImage, Id, ImageData, Painter, Pos2, Rect, TextureId, TextureOptions, Ui, Vec2,
+    Color32, ColorImage, Id, ImageData, Painter, Pos2, Rect, Sense, TextureId, TextureOptions, Ui, Vec2, Widget
 };
 
 pub trait Image {
@@ -53,8 +53,8 @@ pub struct ImageEditor<'image, T> {
     pub image: &'image dyn Image<Pixel = T>,
     /// Allow setting pixels outside of image_boundaries()?
     /// (could be used to e.g. expand the canvas dynamically)
-    pub id_salt: Option<Id>,
     pub set_pixel_out_of_bounds: bool,
+    pub id_salt: Option<Id>,
     pub is_interactive: bool,
 }
 
@@ -82,8 +82,12 @@ impl<'image, T> ImageEditor<'image, T> {
         self.id_salt = Some(Id::new(id_salt));
         self
     }
+}
 
-    pub fn show<R>(self, ui: &mut Ui, add_contents: impl FnOnce(&mut Ui) -> R) -> R {
+impl<'image, T> Widget for ImageEditor<'image, T> {
+    fn ui(self, ui: &mut Ui) -> egui::Response {
+        let (width, height) = self.image.dimensions();
+        //ui.allocate_response(, Sense::click_and_drag())
         todo!()
     }
 }
@@ -94,7 +98,7 @@ struct ImageEditorImpl {
 }
 
 impl ImageEditorImpl {
-    fn upload<T: PixelInterface>(source: &mut (impl Image<Pixel = T> + Sized), ctx: &egui::Context) -> Self {
+    fn upload<T: PixelInterface>(source: &mut impl Image<Pixel = T>, ctx: &egui::Context) -> Self {
         const MAX_TEXTURE_SIZE: usize = 4096;
 
         let texture_width = ctx.fonts(|r| r.max_texture_side()).min(MAX_TEXTURE_SIZE);
@@ -141,8 +145,6 @@ impl ImageEditorImpl {
 fn sample_to_image<T: PixelInterface>(source: &impl Image<Pixel = T>) -> ColorImage {
     let (x_range, y_range) = source.image_boundaries();
     let mut pixels = vec![];
-    let width: usize = (x_range.end() - x_range.start()).try_into().expect("Invalid width range");
-    let height: usize = (y_range.end() - y_range.start()).try_into().expect("Invalid height range");
 
     for y in y_range {
         for x in x_range.clone() {
@@ -150,19 +152,21 @@ fn sample_to_image<T: PixelInterface>(source: &impl Image<Pixel = T>) -> ColorIm
         }
     }
 
+    let (width, height) = source.dimensions();
+
     ColorImage {
         size: [width as usize, height as usize],
         pixels,
     }
 }
 
-pub struct Crop<'image, I: Image> {
+pub struct Crop<'image, I: Image + ?Sized> {
     x_range: RangeInclusive<isize>,
     y_range: RangeInclusive<isize>,
     image: &'image mut I,
 }
 
-trait ImageExt: Image + Sized {
+trait ImageExt: Image {
     fn crop(&mut self, x_range: RangeInclusive<isize>, y_range: RangeInclusive<isize>) -> Crop<Self> {
         Crop {
             x_range,
@@ -170,9 +174,16 @@ trait ImageExt: Image + Sized {
             image: self,
         }
     }
+
+    fn dimensions(&self) -> (usize, usize) {
+        let (x_range, y_range) = self.image_boundaries();
+        let width: usize = (x_range.end() - x_range.start()).try_into().expect("Invalid width range");
+        let height: usize = (y_range.end() - y_range.start()).try_into().expect("Invalid height range");
+        (width, height)
+    }
 }
 
-impl<T: Image + Sized> ImageExt for T {}
+impl<T: Image + ?Sized> ImageExt for T {}
 
 impl<I: Image> Image for Crop<'_, I> {
     type Pixel = I::Pixel;
