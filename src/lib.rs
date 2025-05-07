@@ -91,8 +91,8 @@ impl<'image, T> Widget for ImageEditor<'image, T> {
         let resp = ui.allocate_response(size, Sense::click_and_drag());
 
         let painter = ui.painter();
+        painter.rect_filled(Rect::from_min_size(Pos2::ZERO, Vec2::splat(200.)), 0.0, Color32::WHITE);
         ui.ctx().data(|r| {
-            painter.rect_filled(Rect::from_min_size(Pos2::ZERO, Vec2::splat(200.)), 0.0, Color32::WHITE);
         }); /*r.get_temp_mut_or_insert_with(self.id_salt, ImageEditorImpl::new));*/
 
         //self.just_draw(ui.painter(), resp);
