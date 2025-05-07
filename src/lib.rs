@@ -142,14 +142,14 @@ fn sample_to_image<T>(source: &dyn Image<Pixel = T>) -> ColorImage {
     todo!()
 }
 
-pub struct Crop<Pixel, I: Image<Pixel = Pixel>> {
+pub struct Crop<I: Image> {
     x_range: RangeInclusive<isize>,
     y_range: RangeInclusive<isize>,
     image: I,
 }
 
 trait ImageExt: Image + Sized {
-    fn crop(self, x_range: RangeInclusive<isize>, y_range: RangeInclusive<isize>) -> Crop<Self::Pixel, Self> {
+    fn crop(self, x_range: RangeInclusive<isize>, y_range: RangeInclusive<isize>) -> Crop<Self> {
         Crop {
             x_range,
             y_range,
@@ -158,9 +158,9 @@ trait ImageExt: Image + Sized {
     }
 }
 
-impl<Pixel, I: Image<Pixel = Pixel>> Image for Crop<Pixel, I>
+impl<I: Image> Image for Crop<I>
 {
-    type Pixel = Pixel;
+    type Pixel = I::Pixel;
     fn get_pixel(&self, x: isize, y: isize) -> Self::Pixel {
         assert!(
             self.x_range.contains(&x) && self.y_range.contains(&y),
