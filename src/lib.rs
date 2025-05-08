@@ -134,33 +134,26 @@ impl ImageEditor {
             Pos2::new(*x_range.end() as f32, *y_range.end() as f32), 
         );
 
-        let resp = ui.allocate_rect(image_rect, Sense::click_and_drag());
+        let resp = ui.allocate_response(image_rect.size(), Sense::click_and_drag());
 
-        let (width, height) = image.dimensions();
         let texture_width = self.texture_width as isize;
 
-        let width = width as isize;
-        let height = height as isize;
-
-        let (x_steps, y_steps) = (
-            div_ceil(width, texture_width),
-            div_ceil(height, texture_width),
-        );
-
         // Draw and dynamically load tiles as the image bounds change
-        for tile_y in 0..y_steps {
+        for tile_y in y_range.start() / texture_width..=y_range.end() / texture_width {
             let y = tile_y * texture_width;
-            for tile_x in 0..x_steps {
+            for tile_x in x_range.start() / texture_width..=x_range.end() / texture_width {
                 let x = tile_x * texture_width;
 
-                let rect = Rect::from_min_size(
+                let tile_rect = Rect::from_min_size(
                     Pos2::new(x as _, y as _),
                     Vec2::splat(texture_width as _),
                 );
 
+                let tile_rect = tile_rect.translate(resp.rect.min.to_vec2());
+
                 let tex_id = *self.tiles.entry((tile_x, tile_y)).or_insert_with(|| {
                     let crop = image.crop(x..=x + texture_width - 1, y..=y + texture_width - 1);
-                    let region = sample_to_image(&crop);
+                    let region = sample_patch(&crop, self.texture_width);
                     ui.ctx().tex_manager().write().alloc(
                         format!("Tile {x}, {y}"),
                         region.into(),
@@ -169,18 +162,20 @@ impl ImageEditor {
                 });
 
                 let uv = Rect::from_min_size(Pos2::ZERO, Vec2::splat(1.));
-                ui.painter().image(tex_id, rect, uv, Color32::WHITE);
+                ui.painter().image(tex_id, tile_rect, uv, Color32::WHITE);
             }
         }
     }
 }
 
-fn sample_to_image<T: PixelInterface>(source: &impl Image<Pixel = T>) -> ColorImage {
+fn sample_patch<T: PixelInterface>(source: &impl Image<Pixel = T>, texture_width: usize) -> ColorImage {
     let (x_range, y_range) = source.image_boundaries();
     let mut pixels = vec![];
 
-    for y in y_range {
-        for x in x_range.clone() {
+    for y in 0..texture_width as isize {
+        let y = y + y_range.start();
+        for x in 0..texture_width as isize {
+            let x = x + x_range.start();
             let color = match source.get_pixel_checked(x, y) {
                 Some(px) => px.as_rgba(),
                 None => Color32::TRANSPARENT,
@@ -189,10 +184,8 @@ fn sample_to_image<T: PixelInterface>(source: &impl Image<Pixel = T>) -> ColorIm
         }
     }
 
-    let (width, height) = source.dimensions();
-
     ColorImage {
-        size: [width as usize, height as usize],
+        size: [texture_width as usize; 2],
         pixels,
     }
 }
