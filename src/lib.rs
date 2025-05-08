@@ -1,8 +1,11 @@
-use std::{collections::HashMap, ops::RangeInclusive};
+#![allow(unused_imports)]
+use std::{
+    collections::{HashMap, HashSet},
+    ops::RangeInclusive,
+};
 
 use egui::{
-    Color32, ColorImage, Id, ImageData, Painter, Pos2, Rect, Sense, TextureId, TextureOptions, Ui,
-    Vec2, Widget,
+    epaint::ImageDelta, Color32, ColorImage, Id, ImageData, Painter, Pos2, Rect, Sense, TextureId, TextureOptions, Ui, Vec2, Widget
 };
 
 pub trait Image {
@@ -98,7 +101,7 @@ impl<'image, T> Widget for ImageEditor<'image, T> {
             0.0,
             Color32::WHITE,
         );
-        ui.ctx().data(|r| {}); 
+        ui.ctx().data(|r| {});
         /*r.get_temp_mut_or_insert_with(self.id_salt, ImageEditorImpl::new));*/
 
         //self.just_draw(ui.painter(), resp);
@@ -108,8 +111,14 @@ impl<'image, T> Widget for ImageEditor<'image, T> {
 }
 */
 
+#[derive(Copy, Clone)]
+struct Tile {
+    tex_id: TextureId,
+    is_dirty: bool,
+}
+
 pub struct ImageEditor {
-    tiles: HashMap<(isize, isize), TextureId>,
+    tiles: HashMap<(isize, isize), Tile>,
     texture_width: usize,
 }
 
@@ -123,11 +132,30 @@ impl ImageEditor {
         }
     }
 
+    fn calc_tile(&self, x: isize, y: isize) -> (isize, isize) {
+        let texture_width = self.texture_width as isize;
+        (x / texture_width, y / texture_width)
+    }
+
+    pub fn sync_set_pixel<T: PixelInterface>(
+        &mut self,
+        image: &mut impl Image<Pixel = T>,
+        x: isize,
+        y: isize,
+        px: T,
+    ) {
+        let tile_pos = self.calc_tile(x, y);
+        if let Some(tile) = self.tiles.get_mut(&tile_pos) {
+            tile.is_dirty = true;
+        }
+        image.set_pixel(x, y, px);
+    }
+
     pub fn edit<T: PixelInterface>(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = T>) {
         let (x_range, y_range) = image.image_boundaries();
         let image_rect = Rect::from_min_max(
-            Pos2::new(*x_range.start() as f32, *y_range.start() as f32), 
-            Pos2::new(*x_range.end() as f32, *y_range.end() as f32), 
+            Pos2::new(*x_range.start() as f32, *y_range.start() as f32),
+            Pos2::new(*x_range.end() as f32, *y_range.end() as f32),
         );
 
         let resp = ui.allocate_response(image_rect.size(), Sense::click_and_drag());
@@ -135,7 +163,12 @@ impl ImageEditor {
         self.draw(ui, image, resp.rect.min);
     }
 
-    pub fn draw<T: PixelInterface>(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = T>, pos: Pos2) {
+    pub fn draw<T: PixelInterface>(
+        &mut self,
+        ui: &mut Ui,
+        image: &mut impl Image<Pixel = T>,
+        pos: Pos2,
+    ) {
         let (x_range, y_range) = image.image_boundaries();
         let texture_width = self.texture_width as isize;
 
@@ -145,31 +178,43 @@ impl ImageEditor {
             for tile_x in x_range.start() / texture_width..=x_range.end() / texture_width {
                 let x = tile_x * texture_width;
 
-                let tile_rect = Rect::from_min_size(
-                    Pos2::new(x as _, y as _),
-                    Vec2::splat(texture_width as _),
-                );
+                let tile_rect =
+                    Rect::from_min_size(Pos2::new(x as _, y as _), Vec2::splat(texture_width as _));
 
                 let tile_rect = tile_rect.translate(pos.to_vec2());
 
-                let tex_id = *self.tiles.entry((tile_x, tile_y)).or_insert_with(|| {
+                let mut get_patch = || {
                     let crop = image.crop(x..=x + texture_width - 1, y..=y + texture_width - 1);
-                    let region = sample_patch(&crop, self.texture_width);
-                    ui.ctx().tex_manager().write().alloc(
+                    sample_patch(&crop, self.texture_width)
+                };
+
+                let tex_options = TextureOptions::NEAREST;
+
+                let tile = *self.tiles.entry((tile_x, tile_y)).or_insert_with(|| {
+                    let tex_id = ui.ctx().tex_manager().write().alloc(
                         format!("Tile {x}, {y}"),
-                        region.into(),
-                        TextureOptions::NEAREST,
-                    )
+                        get_patch().into(),
+                        tex_options,
+                    );
+                    Tile::new(tex_id)
                 });
 
+                if tile.is_dirty {
+                    let patch = get_patch();
+                    ui.ctx().tex_manager().write().set(tile.tex_id, ImageDelta::full(patch, tex_options));
+                }
+
                 let uv = Rect::from_min_size(Pos2::ZERO, Vec2::splat(1.));
-                ui.painter().image(tex_id, tile_rect, uv, Color32::WHITE);
+                ui.painter().image(tile.tex_id, tile_rect, uv, Color32::WHITE);
             }
         }
     }
 }
 
-fn sample_patch<T: PixelInterface>(source: &impl Image<Pixel = T>, texture_width: usize) -> ColorImage {
+fn sample_patch<T: PixelInterface>(
+    source: &impl Image<Pixel = T>,
+    texture_width: usize,
+) -> ColorImage {
     let (x_range, y_range) = source.image_boundaries();
     let mut pixels = vec![];
 
@@ -262,5 +307,11 @@ impl<I: Image> Image for Crop<'_, I> {
 
     fn image_boundaries(&self) -> (RangeInclusive<isize>, RangeInclusive<isize>) {
         (self.x_range.clone(), self.y_range.clone())
+    }
+}
+
+impl Tile {
+    pub fn new(tex_id: TextureId) -> Self {
+        Self { tex_id, is_dirty: false }
     }
 }
