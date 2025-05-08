@@ -1,7 +1,8 @@
 use std::{collections::HashMap, ops::RangeInclusive};
 
 use egui::{
-    Color32, ColorImage, Id, ImageData, Painter, Pos2, Rect, Sense, TextureId, TextureOptions, Ui, Vec2, Widget
+    Color32, ColorImage, Id, ImageData, Painter, Pos2, Rect, Sense, TextureId, TextureOptions, Ui,
+    Vec2, Widget,
 };
 
 pub trait Image {
@@ -91,9 +92,13 @@ impl<'image, T> Widget for ImageEditor<'image, T> {
         let resp = ui.allocate_response(size, Sense::click_and_drag());
 
         let painter = ui.painter();
-        painter.rect_filled(Rect::from_min_size(Pos2::ZERO, Vec2::splat(200.)), 0.0, Color32::WHITE);
-        ui.ctx().data(|r| {
-        }); /*r.get_temp_mut_or_insert_with(self.id_salt, ImageEditorImpl::new));*/
+        painter.rect_filled(
+            Rect::from_min_size(Pos2::ZERO, Vec2::splat(200.)),
+            0.0,
+            Color32::WHITE,
+        );
+        ui.ctx().data(|r| {}); 
+        /*r.get_temp_mut_or_insert_with(self.id_salt, ImageEditorImpl::new));*/
 
         //self.just_draw(ui.painter(), resp);
 
@@ -106,6 +111,10 @@ struct ImageEditorImpl {
     texture_width: usize,
 }
 
+fn div_ceil(a: isize, b: isize) -> isize {
+    1 + ((a - 1) / b)
+}
+
 impl ImageEditorImpl {
     fn new(ctx: &egui::Context) -> Self {
         const MAX_TEXTURE_SIZE: usize = 4096;
@@ -116,57 +125,43 @@ impl ImageEditorImpl {
         }
     }
 
-    fn draw<T: PixelInterface>(painter: &mut Painter, source: &mut impl Image<Pixel = T>, pos: Pos2) -> Self {
-        /*
-        let mut tiles = HashMap::new();
+    fn edit<T: PixelInterface>(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = T>) {
+        let (width, height) = image.dimensions();
+        let texture_width = self.texture_width as isize;
+        let width = width as isize;
+        let height = height as isize;
 
-        let (x_range, y_range) = source.image_boundaries();
-        let (width, height) = source.dimensions();
-        let (x_steps, y_steps) = (width / texture_width, height / texture_width);
+        let (x_steps, y_steps) = (
+            div_ceil(width, texture_width),
+            div_ceil(height, texture_width),
+        );
 
+        // Draw and dynamically load tiles as the image bounds change
         for tile_y in 0..y_steps {
-            let tile_image_y = tile_y * width;
-            let remain_y = (y_range.end() - tile_y).min(texture_width as isize);
+            let y = tile_y * texture_width;
             for tile_x in 0..x_steps {
-                let tile_image_x = tile_x * texture_width;
-                let remain_x = (x_range.end() - tile_x).min(texture_width as isize);
+                let x = tile_x * texture_width;
 
                 let rect = Rect::from_min_size(
-                    Vec2::new(tile_x as _, tile_y as _),
-                    Vec2::new(remain_x as _, remain_y as _),
-                );
-                todo!()
-                /*
-                let crop = source.crop(x..=x+remain_x-1, y..=y+remain_x-1);
-                let region = sample_to_image(&crop);
-
-                let tex = ctx.tex_manager().write().alloc(
-                    format!("Tile {x}, {y}"),
-                    ImageData::Color(region.into()),
-                    TextureOptions::NEAREST,
+                    Pos2::new(x as _, y as _),
+                    Vec2::new(texture_width as _, texture_width as _),
                 );
 
-                tiles.insert((x, y), (rect, tex));
-                */
+                let tex_id = *self.tiles.entry((tile_x, tile_y)).or_insert_with(|| {
+                    let crop = image.crop(x..=x + texture_width - 1, y..=y + texture_width - 1);
+                    let region = sample_to_image(&crop);
+                    ui.ctx().tex_manager().write().alloc(
+                        format!("Tile {x}, {y}"),
+                        region.into(),
+                        TextureOptions::NEAREST,
+                    )
+                });
+
+                let uv = Rect::from_min_size(Pos2::ZERO, Vec2::splat(1.));
+                ui.painter().image(tex_id, rect, uv, Color32::WHITE);
             }
         }
-
-        Self {
-            tiles,
-            texture_width,
-        }
-        */
-        todo!()
     }
-
-    /*
-    fn draw(&self, painter: &Painter, pos: Pos2) {
-        let uv = Rect::from_min_size(Pos2::ZERO, Vec2::splat(1.));
-        for ((x, y), tex) in &self.tiles {
-            painter.image(*tex, *rect, uv, Color32::WHITE);
-        }
-    }
-    */
 }
 
 fn sample_to_image<T: PixelInterface>(source: &impl Image<Pixel = T>) -> ColorImage {
@@ -175,7 +170,11 @@ fn sample_to_image<T: PixelInterface>(source: &impl Image<Pixel = T>) -> ColorIm
 
     for y in y_range {
         for x in x_range.clone() {
-            pixels.push(source.get_pixel(x, y).as_rgba());
+            let color = match source.get_pixel_checked(x, y) {
+                Some(px) => px.as_rgba(),
+                None => Color32::TRANSPARENT,
+            };
+            pixels.push(color);
         }
     }
 
@@ -194,7 +193,16 @@ pub struct Crop<'image, I: Image + ?Sized> {
 }
 
 trait ImageExt: Image {
-    fn crop(&mut self, x_range: RangeInclusive<isize>, y_range: RangeInclusive<isize>) -> Crop<Self> {
+    fn crop(
+        &mut self,
+        x_range: RangeInclusive<isize>,
+        y_range: RangeInclusive<isize>,
+    ) -> Crop<Self> {
+        let (image_x_range, image_y_range) = self.image_boundaries();
+        let x_range = (*x_range.start()).max(*image_x_range.start())
+            ..=(*x_range.end()).min(*image_x_range.end());
+        let y_range = (*y_range.start()).max(*image_y_range.start())
+            ..=(*y_range.end()).min(*image_y_range.end());
         Crop {
             x_range,
             y_range,
@@ -204,9 +212,18 @@ trait ImageExt: Image {
 
     fn dimensions(&self) -> (usize, usize) {
         let (x_range, y_range) = self.image_boundaries();
-        let width: usize = (x_range.end() - x_range.start()).try_into().expect("Invalid width range");
-        let height: usize = (y_range.end() - y_range.start()).try_into().expect("Invalid height range");
+        let width: usize = (x_range.end() - x_range.start())
+            .try_into()
+            .expect("Invalid width range");
+        let height: usize = (y_range.end() - y_range.start())
+            .try_into()
+            .expect("Invalid height range");
         (width, height)
+    }
+
+    fn get_pixel_checked(&self, x: isize, y: isize) -> Option<Self::Pixel> {
+        let (x_range, y_range) = self.image_boundaries();
+        (x_range.contains(&x) && y_range.contains(&y)).then(|| self.get_pixel(x, y))
     }
 }
 
