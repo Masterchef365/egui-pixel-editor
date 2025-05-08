@@ -124,7 +124,7 @@ pub struct ImageEditor {
 
 impl ImageEditor {
     pub fn new(ctx: &egui::Context) -> Self {
-        const MAX_TEXTURE_SIZE: usize = 4096;
+        const MAX_TEXTURE_SIZE: usize = 512;
         let texture_width = ctx.fonts(|r| r.max_texture_side()).min(MAX_TEXTURE_SIZE);
         Self {
             tiles: Default::default(),
@@ -151,7 +151,7 @@ impl ImageEditor {
         image.set_pixel(x, y, px);
     }
 
-    pub fn edit<T: PixelInterface>(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = T>) {
+    pub fn edit<Pixel: PixelInterface>(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = Pixel>, draw: Pixel) {
         let (x_range, y_range) = image.image_boundaries();
         let image_rect = Rect::from_min_max(
             Pos2::new(*x_range.start() as f32, *y_range.start() as f32),
@@ -176,12 +176,10 @@ impl ImageEditor {
             ui.painter().rect_stroke(rect, 0., Stroke::new(0.1, Color32::LIGHT_GRAY), StrokeKind::Middle);
         }
 
-        /*
         if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
-            let px_pos = egui_to_pixel(interact_pointer_pos);
-            px_pos
+            let (x, y) = egui_to_pixel(interact_pointer_pos);
+            self.sync_set_pixel(image, x, y, draw);
         }
-        */
     }
 
     pub fn draw<T: PixelInterface>(
@@ -211,7 +209,7 @@ impl ImageEditor {
 
                 let tex_options = TextureOptions::NEAREST;
 
-                let tile = *self.tiles.entry((tile_x, tile_y)).or_insert_with(|| {
+                let tile = self.tiles.entry((tile_x, tile_y)).or_insert_with(|| {
                     let tex_id = ui.ctx().tex_manager().write().alloc(
                         format!("Tile {x}, {y}"),
                         get_patch().into(),
@@ -226,6 +224,7 @@ impl ImageEditor {
                         .tex_manager()
                         .write()
                         .set(tile.tex_id, ImageDelta::full(patch, tex_options));
+                    tile.is_dirty = false;
                 }
 
                 let uv = Rect::from_min_size(Pos2::ZERO, Vec2::splat(1.));
