@@ -128,8 +128,17 @@ impl ImageEditor {
     }
 
     pub fn edit<T: PixelInterface>(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = T>) {
+        let (x_range, y_range) = image.image_boundaries();
+        let image_rect = Rect::from_min_max(
+            Pos2::new(*x_range.start() as f32, *y_range.start() as f32), 
+            Pos2::new(*x_range.end() as f32, *y_range.end() as f32), 
+        );
+
+        let resp = ui.allocate_rect(image_rect, Sense::click_and_drag());
+
         let (width, height) = image.dimensions();
         let texture_width = self.texture_width as isize;
+
         let width = width as isize;
         let height = height as isize;
 
