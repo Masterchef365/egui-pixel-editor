@@ -5,7 +5,7 @@ use std::{
 };
 
 use egui::{
-    epaint::ImageDelta, Color32, ColorImage, Id, ImageData, Painter, Pos2, Rect, Sense, TextureId, TextureOptions, Ui, Vec2, Widget
+    epaint::ImageDelta, Color32, ColorImage, Id, ImageData, Painter, Pos2, Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget
 };
 
 pub trait Image {
@@ -155,12 +155,33 @@ impl ImageEditor {
         let (x_range, y_range) = image.image_boundaries();
         let image_rect = Rect::from_min_max(
             Pos2::new(*x_range.start() as f32, *y_range.start() as f32),
-            Pos2::new(*x_range.end() as f32, *y_range.end() as f32),
+            Pos2::new(*x_range.end() as f32 + 1.0, *y_range.end() as f32 + 1.0),
         );
 
         let resp = ui.allocate_response(image_rect.size(), Sense::click_and_drag());
 
+        let egui_to_pixel = |pos: Pos2| -> (isize, isize) {
+            let pos = (pos - resp.rect.min.to_vec2()).floor();
+            (pos.x as _, pos.y as _)
+        };
+
+        let pixel_to_egui =
+            |(x, y): (isize, isize)| -> Pos2 { resp.rect.min + Vec2::new(x as _, y as _) };
+
         self.draw(ui, image, resp.rect.min);
+
+        if let Some(pointer_pos) = resp.hover_pos() {
+            let (x, y) = egui_to_pixel(pointer_pos);
+            let rect = Rect::from_min_max(pixel_to_egui((x, y)), pixel_to_egui((x + 1, y + 1)));
+            ui.painter().rect_stroke(rect, 0., Stroke::new(0.1, Color32::LIGHT_GRAY), StrokeKind::Middle);
+        }
+
+        /*
+        if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
+            let px_pos = egui_to_pixel(interact_pointer_pos);
+            px_pos
+        }
+        */
     }
 
     pub fn draw<T: PixelInterface>(
@@ -201,11 +222,15 @@ impl ImageEditor {
 
                 if tile.is_dirty {
                     let patch = get_patch();
-                    ui.ctx().tex_manager().write().set(tile.tex_id, ImageDelta::full(patch, tex_options));
+                    ui.ctx()
+                        .tex_manager()
+                        .write()
+                        .set(tile.tex_id, ImageDelta::full(patch, tex_options));
                 }
 
                 let uv = Rect::from_min_size(Pos2::ZERO, Vec2::splat(1.));
-                ui.painter().image(tile.tex_id, tile_rect, uv, Color32::WHITE);
+                ui.painter()
+                    .image(tile.tex_id, tile_rect, uv, Color32::WHITE);
             }
         }
     }
@@ -312,6 +337,9 @@ impl<I: Image> Image for Crop<'_, I> {
 
 impl Tile {
     pub fn new(tex_id: TextureId) -> Self {
-        Self { tex_id, is_dirty: false }
+        Self {
+            tex_id,
+            is_dirty: false,
+        }
     }
 }

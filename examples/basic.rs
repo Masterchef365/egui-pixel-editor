@@ -13,11 +13,11 @@ fn main() {
 
         CentralPanel::default().show(ctx, |ui| {
             ui.heading("Image Editor");
-            //egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                //Scene::new().show(ui, &mut scene_rect, |ui| {
+            egui::Frame::canvas(ui.style()).show(ui, |ui| {
+                Scene::new().zoom_range(0.1..=100.0).show(ui, &mut scene_rect, |ui| {
                     editor.edit(ui, &mut image);
-                //});
-            //});
+                });
+            });
         });
     })
     .unwrap();
