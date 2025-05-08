@@ -266,7 +266,7 @@ pub struct Crop<'image, I: Image + ?Sized> {
     image: &'image mut I,
 }
 
-trait ImageExt: Image {
+pub trait ImageExt: Image {
     fn crop(
         &mut self,
         x_range: RangeInclusive<isize>,
