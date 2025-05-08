@@ -50,6 +50,7 @@ impl PixelInterface for Color32 {
     }
 }
 
+/*
 pub struct ImageEditor<'image, T> {
     pub image: &'image dyn Image<Pixel = T>,
     /// Allow setting pixels outside of image_boundaries()?
@@ -105,8 +106,9 @@ impl<'image, T> Widget for ImageEditor<'image, T> {
         resp
     }
 }
+*/
 
-struct ImageEditorImpl {
+pub struct ImageEditor {
     tiles: HashMap<(isize, isize), TextureId>,
     texture_width: usize,
 }
@@ -115,8 +117,8 @@ fn div_ceil(a: isize, b: isize) -> isize {
     1 + ((a - 1) / b)
 }
 
-impl ImageEditorImpl {
-    fn new(ctx: &egui::Context) -> Self {
+impl ImageEditor {
+    pub fn new(ctx: &egui::Context) -> Self {
         const MAX_TEXTURE_SIZE: usize = 4096;
         let texture_width = ctx.fonts(|r| r.max_texture_side()).min(MAX_TEXTURE_SIZE);
         Self {
@@ -125,7 +127,7 @@ impl ImageEditorImpl {
         }
     }
 
-    fn edit<T: PixelInterface>(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = T>) {
+    pub fn edit<T: PixelInterface>(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = T>) {
         let (width, height) = image.dimensions();
         let texture_width = self.texture_width as isize;
         let width = width as isize;
