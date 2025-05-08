@@ -40,7 +40,7 @@ impl Image for ColorImage {
     }
 
     fn image_boundaries(&self) -> (RangeInclusive<isize>, RangeInclusive<isize>) {
-        (0..=self.width() as _, 0..=self.height() as _)
+        (0..=(self.width() - 1) as _, 0..=(self.height() - 1) as _)
     }
 }
 
@@ -146,7 +146,7 @@ impl ImageEditor {
 
                 let rect = Rect::from_min_size(
                     Pos2::new(x as _, y as _),
-                    Vec2::new(texture_width as _, texture_width as _),
+                    Vec2::splat(texture_width as _),
                 );
 
                 let tex_id = *self.tiles.entry((tile_x, tile_y)).or_insert_with(|| {
@@ -214,10 +214,10 @@ trait ImageExt: Image {
 
     fn dimensions(&self) -> (usize, usize) {
         let (x_range, y_range) = self.image_boundaries();
-        let width: usize = (x_range.end() - x_range.start())
+        let width: usize = (x_range.end() - x_range.start() + 1)
             .try_into()
             .expect("Invalid width range");
-        let height: usize = (y_range.end() - y_range.start())
+        let height: usize = (y_range.end() - y_range.start() + 1)
             .try_into()
             .expect("Invalid height range");
         (width, height)
