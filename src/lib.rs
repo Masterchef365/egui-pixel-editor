@@ -113,10 +113,6 @@ pub struct ImageEditor {
     texture_width: usize,
 }
 
-fn div_ceil(a: isize, b: isize) -> isize {
-    1 + ((a - 1) / b)
-}
-
 impl ImageEditor {
     pub fn new(ctx: &egui::Context) -> Self {
         const MAX_TEXTURE_SIZE: usize = 4096;
@@ -136,6 +132,11 @@ impl ImageEditor {
 
         let resp = ui.allocate_response(image_rect.size(), Sense::click_and_drag());
 
+        self.draw(ui, image, resp.rect.min);
+    }
+
+    pub fn draw<T: PixelInterface>(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = T>, pos: Pos2) {
+        let (x_range, y_range) = image.image_boundaries();
         let texture_width = self.texture_width as isize;
 
         // Draw and dynamically load tiles as the image bounds change
@@ -149,7 +150,7 @@ impl ImageEditor {
                     Vec2::splat(texture_width as _),
                 );
 
-                let tile_rect = tile_rect.translate(resp.rect.min.to_vec2());
+                let tile_rect = tile_rect.translate(pos.to_vec2());
 
                 let tex_id = *self.tiles.entry((tile_x, tile_y)).or_insert_with(|| {
                     let crop = image.crop(x..=x + texture_width - 1, y..=y + texture_width - 1);
