@@ -250,6 +250,13 @@ impl TiledEguiImage {
             }
         }
     }
+
+    pub fn track<'tiles, 'image, I: Image>(
+        &'tiles mut self,
+        image: &'image mut I,
+    ) -> TileChangeTracker<'image, 'tiles, I> {
+        TileChangeTracker { image, tiles: self }
+    }
 }
 
 impl<Pixel: PixelInterface> ImageEditor<Pixel> {
@@ -407,22 +414,20 @@ impl Tile {
     }
 }
 
-/*
-pub struct ChangeTracker<'image, I: Image + ?Sized> {
-    /// (x, y, from color, to color)
-    pub changes: Vec<(isize, isize, I::Pixel, I::Pixel)>,
-    pub image: &'image mut I,
+
+pub struct TileChangeTracker<'image, 'tiles, I: Image + ?Sized> {
+    image: &'image mut I,
+    tiles: &'tiles mut TiledEguiImage,
 }
 
-impl<I> Image for ChangeTracker<'_, I>
+impl<I> Image for TileChangeTracker<'_, '_, I>
 where
     I: Image + ?Sized,
     I::Pixel: Copy,
 {
     type Pixel = I::Pixel;
     fn set_pixel(&mut self, x: isize, y: isize, px: Self::Pixel) {
-        let old_pixel = self.get_pixel(x, y);
-        self.changes.push((x, y, old_pixel, px));
+        self.tiles.notify_change(x, y);
         self.image.set_pixel(x, y, px);
     }
 
@@ -434,4 +439,3 @@ where
         self.image.image_boundaries()
     }
 }
-*/
