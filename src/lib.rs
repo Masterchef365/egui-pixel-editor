@@ -160,8 +160,7 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         self.changes.pop();
     }
 
-    pub fn redo(&mut self) {
-    }
+    pub fn redo(&mut self) {}
 }
 
 pub struct TiledEguiImage {
@@ -189,18 +188,15 @@ impl TiledEguiImage {
         (x / texture_width, y / texture_width)
     }
 
-    pub fn sync_set_pixel<T: PixelInterface>(
+    pub fn notify_change(
         &mut self,
-        image: &mut impl Image<Pixel = T>,
         x: isize,
         y: isize,
-        px: T,
     ) {
         let tile_pos = self.calc_tile(x, y);
         if let Some(tile) = self.tiles.get_mut(&tile_pos) {
             tile.is_dirty = true;
         }
-        image.set_pixel(x, y, px);
     }
 
     pub fn draw<T: PixelInterface>(
@@ -264,12 +260,7 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         }
     }
 
-    pub fn edit(
-        &mut self,
-        ui: &mut Ui,
-        image: &mut impl Image<Pixel = Pixel>,
-        draw: Pixel,
-    ) {
+    pub fn edit(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = Pixel>, draw: Pixel) {
         let (x_range, y_range) = image.image_boundaries();
         let image_rect = Rect::from_min_max(
             Pos2::new(*x_range.start() as f32, *y_range.start() as f32),
@@ -301,11 +292,11 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
 
         if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
             let (x, y) = egui_to_pixel(interact_pointer_pos);
-            self.image.sync_set_pixel(image, x, y, draw);
+            self.image.notify_change(x, y);
+            image.set_pixel(x, y, draw);
+            //self.undoer.sync_set_pixel(image, x, y, draw);
         }
     }
-
-    
 }
 
 fn sample_patch<T: PixelInterface>(
@@ -415,3 +406,32 @@ impl Tile {
         }
     }
 }
+
+/*
+pub struct ChangeTracker<'image, I: Image + ?Sized> {
+    /// (x, y, from color, to color)
+    pub changes: Vec<(isize, isize, I::Pixel, I::Pixel)>,
+    pub image: &'image mut I,
+}
+
+impl<I> Image for ChangeTracker<'_, I>
+where
+    I: Image + ?Sized,
+    I::Pixel: Copy,
+{
+    type Pixel = I::Pixel;
+    fn set_pixel(&mut self, x: isize, y: isize, px: Self::Pixel) {
+        let old_pixel = self.get_pixel(x, y);
+        self.changes.push((x, y, old_pixel, px));
+        self.image.set_pixel(x, y, px);
+    }
+
+    fn get_pixel(&self, x: isize, y: isize) -> Self::Pixel {
+        self.image.get_pixel(x, y)
+    }
+
+    fn image_boundaries(&self) -> (RangeInclusive<isize>, RangeInclusive<isize>) {
+        self.image.image_boundaries()
+    }
+}
+*/
