@@ -14,4 +14,4 @@ pub mod image;
 mod image_editor;
 mod undo;
 
-pub use image_editor::ImageEditor;
+pub use image_editor::{ImageEditor, Brush};

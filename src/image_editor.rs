@@ -8,8 +8,19 @@ use egui::{
     Painter, Pos2, Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget,
 };
 
-use crate::{image::{Image, PixelInterface}, tiled_image::TiledEguiImage, undo::SparseImageUndoer};
+use crate::{
+    image::{Image, ImageExt, PixelInterface},
+    tiled_image::TiledEguiImage,
+    undo::SparseImageUndoer,
+};
 
+#[derive(Copy, Clone)]
+pub enum Brush {
+    /// Width, Height
+    Ellipse(isize, isize),
+    /// Width, Height
+    Rectangle(isize, isize),
+}
 
 pub struct ImageEditor<Pixel> {
     tiles: TiledEguiImage,
@@ -24,8 +35,13 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         }
     }
 
-    pub fn edit(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = Pixel>, draw: Pixel)
-    where
+    pub fn edit(
+        &mut self,
+        ui: &mut Ui,
+        image: &mut impl Image<Pixel = Pixel>,
+        draw_color: Pixel,
+        brush: Brush,
+    ) where
         Pixel: PartialEq + Copy,
     {
         let (x_range, y_range) = image.image_boundaries();
@@ -95,8 +111,37 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
             let (x, y) = egui_to_pixel(interact_pointer_pos);
             let mut image = self.undoer.track(&mut image);
-            image.set_pixel(x, y, draw);
+            brush.pixels(x, y, |x, y| {
+                image.set_pixel_checked(x, y, draw_color);
+            });
             //self.undoer.sync_set_pixel(image, x, y, draw);
+        }
+    }
+}
+
+impl Brush {
+    fn pixels(&self, x: isize, y: isize, mut f: impl FnMut(isize, isize)) {
+        match *self {
+            Brush::Ellipse(wx, wy) => {
+                for dy in -wy..=wy {
+                    for dx in -wx..=wx {
+                        let dx2 = dx * dx;
+                        let dy2 = dy * dy;
+                        let wx2 = wx * wx;
+                        let wy2 = wy * wy;
+                        if dy2 * wx2 < wy2 * wx2 - wy2 * dx2 {
+                            f(x + dx, y + dy);
+                        }
+                    }
+                }
+            }
+            Brush::Rectangle(wx, wy) => {
+                for dy in -wy..=wy {
+                    for dx in -wx..=wx {
+                        f(x + dx, y + dy);
+                    }
+                }
+            }
         }
     }
 }

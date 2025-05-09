@@ -63,8 +63,20 @@ pub trait ImageExt: Image {
     }
 
     fn get_pixel_checked(&self, x: isize, y: isize) -> Option<Self::Pixel> {
+        self.bounds_check(x, y).then(|| self.get_pixel(x, y))
+    }
+
+    fn set_pixel_checked(&mut self, x: isize, y: isize, px: Self::Pixel) -> bool {
+        let ret = self.bounds_check(x, y);
+        if ret {
+            self.set_pixel(x, y, px);
+        } 
+        ret
+    }
+
+    fn bounds_check(&self, x: isize, y: isize) -> bool {
         let (x_range, y_range) = self.image_boundaries();
-        (x_range.contains(&x) && y_range.contains(&y)).then(|| self.get_pixel(x, y))
+        x_range.contains(&x) && y_range.contains(&y)
     }
 }
 
