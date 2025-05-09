@@ -17,6 +17,8 @@ pub struct SparseImageUndoer<Pixel> {
     /// Each frame corresponds to a continuous mouse movement
     changes: Vec<UndoFrame<Pixel>>,
     redo: Vec<UndoFrame<Pixel>>,
+    /// The maximum number of frames we keep before we start removing history
+    pub max_frames: usize,
 }
 
 impl<Pixel> SparseImageUndoer<Pixel> {
@@ -24,11 +26,15 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         Self {
             changes: vec![],
             redo: vec![],
+            max_frames: 100,
         }
     }
 
     pub fn new_frame(&mut self) {
         self.changes.push(vec![]);
+        if self.changes.len() > self.max_frames {
+            self.changes.remove(0);
+        }
     }
 
     pub fn set_pixel<I>(&mut self, image: &mut I, x: isize, y: isize, new_px: Pixel)
