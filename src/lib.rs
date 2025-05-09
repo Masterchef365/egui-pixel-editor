@@ -191,6 +191,13 @@ impl<Pixel> SparseImageUndoer<Pixel> {
 
         self.redo.push(frame);
     }
+
+    pub fn track<'undoer, 'image, I: Image<Pixel = Pixel>>(
+        &'undoer mut self,
+        image: &'image mut I,
+    ) -> UndoChangeTracker<'image, 'undoer, I> {
+        UndoChangeTracker { image, undoer: self }
+    }
 }
 
 pub struct TiledEguiImage {
@@ -293,7 +300,7 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         }
     }
 
-    pub fn edit(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = Pixel>, draw: Pixel) {
+    pub fn edit(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = Pixel>, draw: Pixel) where Pixel: PartialEq + Copy {
         let (x_range, y_range) = image.image_boundaries();
         let image_rect = Rect::from_min_max(
             Pos2::new(*x_range.start() as f32, *y_range.start() as f32),
@@ -326,6 +333,7 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
             let (x, y) = egui_to_pixel(interact_pointer_pos);
             let mut image = self.image.track(image);
+            let mut image = self.undoer.track(&mut image);
             image.set_pixel(x, y, draw);
             //self.undoer.sync_set_pixel(image, x, y, draw);
         }
