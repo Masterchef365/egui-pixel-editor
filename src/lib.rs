@@ -139,14 +139,15 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         self.changes.push(vec![]);
     }
 
-    pub fn set_pixel(
+    pub fn set_pixel<I>(
         &mut self,
-        image: &mut impl Image<Pixel = Pixel>,
+        image: &mut I,
         x: isize,
         y: isize,
         new_px: Pixel,
     ) where
-        Pixel: PixelInterface + PartialEq + Copy,
+        I: Image<Pixel = Pixel> + ?Sized,
+        I::Pixel: PartialEq + Copy,
     {
         let frame = self.changes.last_mut().unwrap();
         let old_px = image.get_pixel(x, y);
@@ -428,6 +429,31 @@ where
     fn set_pixel(&mut self, x: isize, y: isize, px: Self::Pixel) {
         self.tiles.notify_change(x, y);
         self.image.set_pixel(x, y, px);
+    }
+
+    fn get_pixel(&self, x: isize, y: isize) -> Self::Pixel {
+        self.image.get_pixel(x, y)
+    }
+
+    fn image_boundaries(&self) -> (RangeInclusive<isize>, RangeInclusive<isize>) {
+        self.image.image_boundaries()
+    }
+}
+
+
+pub struct UndoChangeTracker<'image, 'undoer, I: Image + ?Sized> {
+    image: &'image mut I,
+    undoer: &'undoer mut SparseImageUndoer<I::Pixel>,
+}
+
+impl<I> Image for UndoChangeTracker<'_, '_, I>
+where
+    I: Image + ?Sized,
+    I::Pixel: Copy + PartialEq,
+{
+    type Pixel = I::Pixel;
+    fn set_pixel(&mut self, x: isize, y: isize, px: Self::Pixel) {
+        self.undoer.set_pixel(self.image, x, y, px)
     }
 
     fn get_pixel(&self, x: isize, y: isize) -> Self::Pixel {
