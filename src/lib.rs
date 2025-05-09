@@ -5,8 +5,8 @@ use std::{
 };
 
 use egui::{
-    epaint::ImageDelta, Color32, ColorImage, Id, ImageData, Painter, Pos2, Rect, Sense, Stroke,
-    StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget,
+    epaint::ImageDelta, Color32, ColorImage, Event, EventFilter, Id, ImageData, Key, Modifiers,
+    Painter, Pos2, Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget,
 };
 
 pub trait Image {
@@ -196,7 +196,10 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         &'undoer mut self,
         image: &'image mut I,
     ) -> UndoChangeTracker<'image, 'undoer, I> {
-        UndoChangeTracker { image, undoer: self }
+        UndoChangeTracker {
+            image,
+            undoer: self,
+        }
     }
 }
 
@@ -300,7 +303,10 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         }
     }
 
-    pub fn edit(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = Pixel>, draw: Pixel) where Pixel: PartialEq + Copy {
+    pub fn edit(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = Pixel>, draw: Pixel)
+    where
+        Pixel: PartialEq + Copy,
+    {
         let (x_range, y_range) = image.image_boundaries();
         let image_rect = Rect::from_min_max(
             Pos2::new(*x_range.start() as f32, *y_range.start() as f32),
@@ -308,6 +314,35 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         );
 
         let resp = ui.allocate_response(image_rect.size(), Sense::click_and_drag());
+
+        let events = ui.input(|i| i.filtered_events(&EventFilter::default()));
+        for event in events {
+            match event {
+                // Undo
+                Event::Key {
+                    key: Key::Z,
+                    pressed: true,
+                    modifiers,
+                    ..
+                } if modifiers.matches_logically(Modifiers::COMMAND) => {
+                    self.undoer.undo(image);
+                }
+
+                // Redo
+                Event::Key {
+                    key,
+                    pressed: true,
+                    modifiers,
+                    ..
+                } if (modifiers.matches_logically(Modifiers::COMMAND) && key == Key::Y)
+                    || (modifiers.matches_logically(Modifiers::SHIFT | Modifiers::COMMAND)
+                        && key == Key::Z) =>
+                {
+                    self.undoer.redo(image);
+                }
+                _ => (),
+            }
+        }
 
         let egui_to_pixel = |pos: Pos2| -> (isize, isize) {
             let pos = (pos - resp.rect.min.to_vec2()).floor();
