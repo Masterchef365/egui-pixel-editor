@@ -299,7 +299,7 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
 
         if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
             let (x, y) = egui_to_pixel(interact_pointer_pos);
-            self.image.notify_change(x, y);
+            let mut image = self.image.track(image);
             image.set_pixel(x, y, draw);
             //self.undoer.sync_set_pixel(image, x, y, draw);
         }
@@ -423,7 +423,6 @@ pub struct TileChangeTracker<'image, 'tiles, I: Image + ?Sized> {
 impl<I> Image for TileChangeTracker<'_, '_, I>
 where
     I: Image + ?Sized,
-    I::Pixel: Copy,
 {
     type Pixel = I::Pixel;
     fn set_pixel(&mut self, x: isize, y: isize, px: Self::Pixel) {
