@@ -164,20 +164,23 @@ impl<Pixel> SparseImageUndoer<Pixel> {
     }
 }
 
-pub struct ImageEditor<Pixel> {
+pub struct TiledEguiImage {
     tiles: HashMap<(isize, isize), Tile>,
     texture_width: usize,
+}
+
+pub struct ImageEditor<Pixel> {
+    image: TiledEguiImage,
     undoer: SparseImageUndoer<Pixel>,
 }
 
-impl<Pixel: PixelInterface> ImageEditor<Pixel> {
+impl TiledEguiImage {
     pub fn new(ctx: &egui::Context) -> Self {
         const MAX_TEXTURE_SIZE: usize = 512;
         let texture_width = ctx.fonts(|r| r.max_texture_side()).min(MAX_TEXTURE_SIZE);
         Self {
             tiles: Default::default(),
             texture_width,
-            undoer: SparseImageUndoer::new(),
         }
     }
 
@@ -198,47 +201,6 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
             tile.is_dirty = true;
         }
         image.set_pixel(x, y, px);
-    }
-
-    pub fn edit(
-        &mut self,
-        ui: &mut Ui,
-        image: &mut impl Image<Pixel = Pixel>,
-        draw: Pixel,
-    ) {
-        let (x_range, y_range) = image.image_boundaries();
-        let image_rect = Rect::from_min_max(
-            Pos2::new(*x_range.start() as f32, *y_range.start() as f32),
-            Pos2::new(*x_range.end() as f32 + 1.0, *y_range.end() as f32 + 1.0),
-        );
-
-        let resp = ui.allocate_response(image_rect.size(), Sense::click_and_drag());
-
-        let egui_to_pixel = |pos: Pos2| -> (isize, isize) {
-            let pos = (pos - resp.rect.min.to_vec2()).floor();
-            (pos.x as _, pos.y as _)
-        };
-
-        let pixel_to_egui =
-            |(x, y): (isize, isize)| -> Pos2 { resp.rect.min + Vec2::new(x as _, y as _) };
-
-        self.draw(ui, image, resp.rect.min);
-
-        if let Some(pointer_pos) = resp.hover_pos() {
-            let (x, y) = egui_to_pixel(pointer_pos);
-            let rect = Rect::from_min_max(pixel_to_egui((x, y)), pixel_to_egui((x + 1, y + 1)));
-            ui.painter().rect_stroke(
-                rect,
-                0.,
-                Stroke::new(0.1, Color32::LIGHT_GRAY),
-                StrokeKind::Middle,
-            );
-        }
-
-        if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
-            let (x, y) = egui_to_pixel(interact_pointer_pos);
-            self.sync_set_pixel(image, x, y, draw);
-        }
     }
 
     pub fn draw<T: PixelInterface>(
@@ -292,6 +254,58 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
             }
         }
     }
+}
+
+impl<Pixel: PixelInterface> ImageEditor<Pixel> {
+    pub fn new(ctx: &egui::Context) -> Self {
+        Self {
+            image: TiledEguiImage::new(ctx),
+            undoer: SparseImageUndoer::new(),
+        }
+    }
+
+    pub fn edit(
+        &mut self,
+        ui: &mut Ui,
+        image: &mut impl Image<Pixel = Pixel>,
+        draw: Pixel,
+    ) {
+        let (x_range, y_range) = image.image_boundaries();
+        let image_rect = Rect::from_min_max(
+            Pos2::new(*x_range.start() as f32, *y_range.start() as f32),
+            Pos2::new(*x_range.end() as f32 + 1.0, *y_range.end() as f32 + 1.0),
+        );
+
+        let resp = ui.allocate_response(image_rect.size(), Sense::click_and_drag());
+
+        let egui_to_pixel = |pos: Pos2| -> (isize, isize) {
+            let pos = (pos - resp.rect.min.to_vec2()).floor();
+            (pos.x as _, pos.y as _)
+        };
+
+        let pixel_to_egui =
+            |(x, y): (isize, isize)| -> Pos2 { resp.rect.min + Vec2::new(x as _, y as _) };
+
+        self.image.draw(ui, image, resp.rect.min);
+
+        if let Some(pointer_pos) = resp.hover_pos() {
+            let (x, y) = egui_to_pixel(pointer_pos);
+            let rect = Rect::from_min_max(pixel_to_egui((x, y)), pixel_to_egui((x + 1, y + 1)));
+            ui.painter().rect_stroke(
+                rect,
+                0.,
+                Stroke::new(0.1, Color32::LIGHT_GRAY),
+                StrokeKind::Middle,
+            );
+        }
+
+        if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
+            let (x, y) = egui_to_pixel(interact_pointer_pos);
+            self.image.sync_set_pixel(image, x, y, draw);
+        }
+    }
+
+    
 }
 
 fn sample_patch<T: PixelInterface>(
