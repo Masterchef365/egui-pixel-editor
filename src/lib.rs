@@ -92,7 +92,6 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         let frame = self.changes.last_mut().unwrap();
 
         let old_px = image.get_pixel(x, y);
-        dbg!(frame.len());
         if new_px != old_px {
             frame.push((x, y, old_px, new_px));
             image.set_pixel(x, y, new_px);
@@ -156,7 +155,7 @@ pub struct TiledEguiImage {
 }
 
 pub struct ImageEditor<Pixel> {
-    image: TiledEguiImage,
+    tiles: TiledEguiImage,
     undoer: SparseImageUndoer<Pixel>,
 }
 
@@ -245,7 +244,7 @@ impl TiledEguiImage {
 impl<Pixel: PixelInterface> ImageEditor<Pixel> {
     pub fn new(ctx: &egui::Context) -> Self {
         Self {
-            image: TiledEguiImage::new(ctx),
+            tiles: TiledEguiImage::new(ctx),
             undoer: SparseImageUndoer::new(),
         }
     }
@@ -266,6 +265,10 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
             self.undoer.new_frame();
         }
 
+        self.tiles.draw(ui, image, resp.rect.min);
+
+        let mut image = self.tiles.track(image);
+
         let events = ui.input(|i| i.filtered_events(&EventFilter::default()));
         for event in events {
             match event {
@@ -276,8 +279,7 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
                     modifiers,
                     ..
                 } if modifiers.matches_logically(Modifiers::COMMAND) => {
-                    eprintln!("UNDO EVENT");
-                    self.undoer.undo(image);
+                    self.undoer.undo(&mut image);
                 }
 
                 // Redo
@@ -290,8 +292,7 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
                     || (modifiers.matches_logically(Modifiers::SHIFT | Modifiers::COMMAND)
                         && key == Key::Z) =>
                 {
-                    eprintln!("REDO EVENT");
-                    self.undoer.redo(image);
+                    self.undoer.redo(&mut image);
                 }
                 _ => (),
             }
@@ -304,8 +305,6 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
 
         let pixel_to_egui =
             |(x, y): (isize, isize)| -> Pos2 { resp.rect.min + Vec2::new(x as _, y as _) };
-
-        self.image.draw(ui, image, resp.rect.min);
 
         if let Some(pointer_pos) = resp.hover_pos() {
             let (x, y) = egui_to_pixel(pointer_pos);
@@ -320,7 +319,6 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
 
         if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
             let (x, y) = egui_to_pixel(interact_pointer_pos);
-            let mut image = self.image.track(image);
             let mut image = self.undoer.track(&mut image);
             image.set_pixel(x, y, draw);
             //self.undoer.sync_set_pixel(image, x, y, draw);
