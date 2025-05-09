@@ -95,6 +95,7 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         if new_px != old_px {
             frame.push((x, y, old_px, new_px));
             image.set_pixel(x, y, new_px);
+            self.redo.clear();
         }
     }
 
