@@ -5,7 +5,8 @@ use std::{
 };
 
 use egui::{
-    epaint::ImageDelta, Color32, ColorImage, Id, ImageData, Painter, Pos2, Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget
+    epaint::ImageDelta, Color32, ColorImage, Id, ImageData, Painter, Pos2, Rect, Sense, Stroke,
+    StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget,
 };
 
 pub trait Image {
@@ -117,18 +118,66 @@ struct Tile {
     is_dirty: bool,
 }
 
-pub struct ImageEditor {
-    tiles: HashMap<(isize, isize), Tile>,
-    texture_width: usize,
+type UndoFrame<Pixel> = Vec<(Pixel, Pixel)>;
+
+struct SparseImageUndoer<Pixel> {
+    /// A list of "frames" of changes to the image.
+    /// Each frame corresponds to a continuous mouse movement
+    changes: Vec<UndoFrame<Pixel>>,
+    redo: Vec<UndoFrame<Pixel>>,
 }
 
-impl ImageEditor {
+impl<Pixel> SparseImageUndoer<Pixel> {
+    pub fn new() -> Self {
+        Self {
+            changes: vec![],
+            redo: vec![],
+        }
+    }
+
+    pub fn new_frame(&mut self) {
+        self.changes.push(vec![]);
+    }
+
+    pub fn set_pixel(
+        &mut self,
+        image: &mut impl Image<Pixel = Pixel>,
+        x: isize,
+        y: isize,
+        new_px: Pixel,
+    ) where
+        Pixel: PixelInterface + PartialEq + Copy,
+    {
+        let frame = self.changes.last_mut().unwrap();
+        let old_px = image.get_pixel(x, y);
+        if new_px != old_px {
+            frame.push((old_px, new_px));
+            image.set_pixel(x, y, new_px);
+        }
+    }
+
+    pub fn undo(&mut self) {
+        self.changes.pop();
+    }
+
+    pub fn redo(&mut self) {
+    }
+}
+
+pub struct ImageEditor<Pixel> {
+    tiles: HashMap<(isize, isize), Tile>,
+    texture_width: usize,
+    undoer: SparseImageUndoer<Pixel>,
+}
+
+impl<Pixel: PixelInterface> ImageEditor<Pixel> {
     pub fn new(ctx: &egui::Context) -> Self {
         const MAX_TEXTURE_SIZE: usize = 512;
         let texture_width = ctx.fonts(|r| r.max_texture_side()).min(MAX_TEXTURE_SIZE);
         Self {
             tiles: Default::default(),
             texture_width,
+            undoer: SparseImageUndoer::new(),
         }
     }
 
@@ -151,7 +200,12 @@ impl ImageEditor {
         image.set_pixel(x, y, px);
     }
 
-    pub fn edit<Pixel: PixelInterface>(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = Pixel>, draw: Pixel) {
+    pub fn edit(
+        &mut self,
+        ui: &mut Ui,
+        image: &mut impl Image<Pixel = Pixel>,
+        draw: Pixel,
+    ) {
         let (x_range, y_range) = image.image_boundaries();
         let image_rect = Rect::from_min_max(
             Pos2::new(*x_range.start() as f32, *y_range.start() as f32),
@@ -173,7 +227,12 @@ impl ImageEditor {
         if let Some(pointer_pos) = resp.hover_pos() {
             let (x, y) = egui_to_pixel(pointer_pos);
             let rect = Rect::from_min_max(pixel_to_egui((x, y)), pixel_to_egui((x + 1, y + 1)));
-            ui.painter().rect_stroke(rect, 0., Stroke::new(0.1, Color32::LIGHT_GRAY), StrokeKind::Middle);
+            ui.painter().rect_stroke(
+                rect,
+                0.,
+                Stroke::new(0.1, Color32::LIGHT_GRAY),
+                StrokeKind::Middle,
+            );
         }
 
         if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
