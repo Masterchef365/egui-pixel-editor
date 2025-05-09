@@ -118,7 +118,7 @@ struct Tile {
     is_dirty: bool,
 }
 
-type UndoFrame<Pixel> = Vec<(Pixel, Pixel)>;
+type UndoFrame<Pixel> = Vec<(isize, isize, Pixel, Pixel)>;
 
 struct SparseImageUndoer<Pixel> {
     /// A list of "frames" of changes to the image.
@@ -139,29 +139,58 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         self.changes.push(vec![]);
     }
 
-    pub fn set_pixel<I>(
-        &mut self,
-        image: &mut I,
-        x: isize,
-        y: isize,
-        new_px: Pixel,
-    ) where
+    pub fn set_pixel<I>(&mut self, image: &mut I, x: isize, y: isize, new_px: Pixel)
+    where
         I: Image<Pixel = Pixel> + ?Sized,
         I::Pixel: PartialEq + Copy,
     {
         let frame = self.changes.last_mut().unwrap();
         let old_px = image.get_pixel(x, y);
         if new_px != old_px {
-            frame.push((old_px, new_px));
+            frame.push((x, y, old_px, new_px));
             image.set_pixel(x, y, new_px);
         }
     }
 
-    pub fn undo(&mut self) {
-        self.changes.pop();
+    pub fn undo<I>(&mut self, image: &mut I)
+    where
+        I: Image<Pixel = Pixel> + ?Sized,
+        I::Pixel: PartialEq + Copy,
+    {
+        let Some(frame) = self.changes.pop() else {
+            return;
+        };
+
+        for (x, y, old, new) in frame.iter().rev().copied() {
+            debug_assert!(
+                new == image.get_pixel(x, y),
+                "Undo History did not match canvas!"
+            );
+            image.set_pixel(x, y, old);
+        }
+
+        self.redo.push(frame);
     }
 
-    pub fn redo(&mut self) {}
+    pub fn redo<I>(&mut self, image: &mut I)
+    where
+        I: Image<Pixel = Pixel> + ?Sized,
+        I::Pixel: PartialEq + Copy,
+    {
+        let Some(frame) = self.redo.pop() else {
+            return;
+        };
+
+        for (x, y, old, new) in frame.iter().copied() {
+            debug_assert!(
+                old == image.get_pixel(x, y),
+                "Redo History did not match canvas!"
+            );
+            image.set_pixel(x, y, new);
+        }
+
+        self.redo.push(frame);
+    }
 }
 
 pub struct TiledEguiImage {
@@ -189,11 +218,7 @@ impl TiledEguiImage {
         (x / texture_width, y / texture_width)
     }
 
-    pub fn notify_change(
-        &mut self,
-        x: isize,
-        y: isize,
-    ) {
+    pub fn notify_change(&mut self, x: isize, y: isize) {
         let tile_pos = self.calc_tile(x, y);
         if let Some(tile) = self.tiles.get_mut(&tile_pos) {
             tile.is_dirty = true;
@@ -415,7 +440,6 @@ impl Tile {
     }
 }
 
-
 pub struct TileChangeTracker<'image, 'tiles, I: Image + ?Sized> {
     image: &'image mut I,
     tiles: &'tiles mut TiledEguiImage,
@@ -439,7 +463,6 @@ where
         self.image.image_boundaries()
     }
 }
-
 
 pub struct UndoChangeTracker<'image, 'undoer, I: Image + ?Sized> {
     image: &'image mut I,
