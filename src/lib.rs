@@ -135,7 +135,7 @@ impl<Pixel> SparseImageUndoer<Pixel> {
             image.set_pixel(x, y, new);
         }
 
-        self.redo.push(frame);
+        self.changes.push(frame);
     }
 
     pub fn track<'undoer, 'image, I: Image<Pixel = Pixel>>(
