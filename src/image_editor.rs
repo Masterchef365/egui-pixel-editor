@@ -98,14 +98,8 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
             |(x, y): (isize, isize)| -> Pos2 { resp.rect.min + Vec2::new(x as _, y as _) };
 
         if let Some(pointer_pos) = resp.hover_pos() {
-            let (x, y) = egui_to_pixel(pointer_pos);
-            let rect = Rect::from_min_max(pixel_to_egui((x, y)), pixel_to_egui((x + 1, y + 1)));
-            ui.painter().rect_stroke(
-                rect,
-                0.,
-                Stroke::new(0.1, Color32::LIGHT_GRAY),
-                StrokeKind::Middle,
-            );
+            let quantized_pos = pixel_to_egui(egui_to_pixel(pointer_pos));
+            brush.draw(ui.painter(), quantized_pos);
         }
 
         if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
@@ -142,6 +136,23 @@ impl Brush {
                     }
                 }
             }
+        }
+    }
+
+    fn draw(&self, paint: &Painter, pos: Pos2) {
+        match *self {
+            Brush::Rectangle(wx, wy) | Brush::Ellipse(wx, wy) => {
+                let v = Vec2::new(wx as f32, wy as f32);
+                let rect = Rect::from_min_max(pos - v + Vec2::splat(1.0), pos + v);
+                paint.rect_stroke(
+                    rect,
+                    0.,
+                    Stroke::new(0.1, Color32::LIGHT_GRAY),
+                    StrokeKind::Middle,
+                );
+            },
+            /*Brush::Ellipse(wx, wy) => {
+            }*/
         }
     }
 }
