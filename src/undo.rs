@@ -10,7 +10,6 @@ use egui::{
 
 use crate::image::Image;
 
-
 type UndoFrame<Pixel> = Vec<(isize, isize, Pixel, Pixel)>;
 
 pub struct SparseImageUndoer<Pixel> {
@@ -55,8 +54,13 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         I: Image<Pixel = Pixel> + ?Sized,
         I::Pixel: PartialEq + Copy,
     {
-        let Some(frame) = self.changes.pop() else {
-            return;
+        let frame = loop {
+            let Some(frame) = self.changes.pop() else {
+                return;
+            };
+            if !frame.is_empty() {
+                break frame;
+            }
         };
 
         for (x, y, old, new) in frame.iter().rev().copied() {
