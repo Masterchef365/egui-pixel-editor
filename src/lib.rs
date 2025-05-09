@@ -144,7 +144,11 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         I: Image<Pixel = Pixel> + ?Sized,
         I::Pixel: PartialEq + Copy,
     {
+        if self.changes.is_empty() {
+            self.changes.push(Vec::new());
+        }
         let frame = self.changes.last_mut().unwrap();
+
         let old_px = image.get_pixel(x, y);
         if new_px != old_px {
             frame.push((x, y, old_px, new_px));
