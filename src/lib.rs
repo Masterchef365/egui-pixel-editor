@@ -54,64 +54,6 @@ impl PixelInterface for Color32 {
     }
 }
 
-/*
-pub struct ImageEditor<'image, T> {
-    pub image: &'image dyn Image<Pixel = T>,
-    /// Allow setting pixels outside of image_boundaries()?
-    /// (could be used to e.g. expand the canvas dynamically)
-    pub set_pixel_out_of_bounds: bool,
-    pub id_salt: Option<Id>,
-    pub is_interactive: bool,
-}
-
-impl<'image, T> ImageEditor<'image, T> {
-    pub fn new(image: &'image dyn Image<Pixel = T>) -> Self {
-        Self {
-            image,
-            id_salt: None,
-            set_pixel_out_of_bounds: false,
-            is_interactive: true,
-        }
-    }
-
-    pub fn with_interactive(mut self, enable: bool) -> Self {
-        self.is_interactive = enable;
-        self
-    }
-
-    pub fn with_out_of_bounds_indexing(mut self, enable: bool) -> Self {
-        self.set_pixel_out_of_bounds = enable;
-        self
-    }
-
-    pub fn id_salt(mut self, id_salt: impl std::hash::Hash) -> Self {
-        self.id_salt = Some(Id::new(id_salt));
-        self
-    }
-}
-
-impl<'image, T> Widget for ImageEditor<'image, T> {
-    fn ui(self, ui: &mut Ui) -> egui::Response {
-        let (width, height) = self.image.dimensions();
-        let size = Vec2::new(width as f32, height as f32);
-        let resp = ui.allocate_response(size, Sense::click_and_drag());
-
-        let painter = ui.painter();
-        painter.rect_filled(
-            Rect::from_min_size(Pos2::ZERO, Vec2::splat(200.)),
-            0.0,
-            Color32::WHITE,
-        );
-        ui.ctx().data(|r| {});
-        /*r.get_temp_mut_or_insert_with(self.id_salt, ImageEditorImpl::new));*/
-
-        //self.just_draw(ui.painter(), resp);
-
-        resp
-    }
-}
-*/
-
 #[derive(Copy, Clone)]
 struct Tile {
     tex_id: TextureId,
@@ -150,6 +92,7 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         let frame = self.changes.last_mut().unwrap();
 
         let old_px = image.get_pixel(x, y);
+        dbg!(frame.len());
         if new_px != old_px {
             frame.push((x, y, old_px, new_px));
             image.set_pixel(x, y, new_px);
@@ -319,6 +262,10 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
 
         let resp = ui.allocate_response(image_rect.size(), Sense::click_and_drag());
 
+        if resp.drag_started() || resp.clicked() {
+            self.undoer.new_frame();
+        }
+
         let events = ui.input(|i| i.filtered_events(&EventFilter::default()));
         for event in events {
             match event {
@@ -329,6 +276,7 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
                     modifiers,
                     ..
                 } if modifiers.matches_logically(Modifiers::COMMAND) => {
+                    eprintln!("UNDO EVENT");
                     self.undoer.undo(image);
                 }
 
@@ -342,6 +290,7 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
                     || (modifiers.matches_logically(Modifiers::SHIFT | Modifiers::COMMAND)
                         && key == Key::Z) =>
                 {
+                    eprintln!("REDO EVENT");
                     self.undoer.redo(image);
                 }
                 _ => (),
