@@ -156,6 +156,6 @@ impl<T: Clone> Image for ndarray::Array2<T> {
 
     fn image_boundaries(&self) -> (RangeInclusive<isize>, RangeInclusive<isize>) {
         let shape = self.shape();
-        (0..=(shape[1] - 1) as _, 0..=(shape[0] - 1) as _)
+        (0..=(shape[0] - 1) as _, 0..=(shape[1] - 1) as _)
     }
 }
