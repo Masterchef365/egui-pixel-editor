@@ -42,13 +42,21 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         }
     }
 
+    pub fn draw(&mut self, 
+        ui: &mut Ui,
+        image: &mut impl Image<Pixel = Pixel>,
+        pos: Pos2,
+    ) {
+        self.tiles.draw(ui, image, pos)
+    }
+
     pub fn edit(
         &mut self,
         ui: &mut Ui,
         image: &mut impl Image<Pixel = Pixel>,
         draw_color: Pixel,
         brush: Brush,
-    ) where
+    ) -> egui::Response where
         Pixel: PartialEq + Copy,
     {
         let (x_range, y_range) = image.image_boundaries();
@@ -117,6 +125,8 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
             });
             //self.undoer.sync_set_pixel(image, x, y, draw);
         }
+
+        resp
     }
 }
 
@@ -150,7 +160,7 @@ impl Brush {
         match *self {
             Brush::Rectangle(wx, wy) | Brush::Ellipse(wx, wy) => {
                 let v = Vec2::new(wx as f32, wy as f32);
-                let rect = Rect::from_min_max(pos - v + Vec2::splat(1.0), pos + v);
+                let rect = Rect::from_min_max(pos - v, pos + v + Vec2::splat(1.0));
                 paint.rect_stroke(
                     rect,
                     0.,
@@ -161,5 +171,11 @@ impl Brush {
             /*Brush::Ellipse(wx, wy) => {
             }*/
         }
+    }
+}
+
+impl Default for Brush {
+    fn default() -> Self {
+        Self::Rectangle(0, 0)
     }
 }
