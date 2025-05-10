@@ -23,13 +23,17 @@ pub struct TiledEguiImage {
 }
 
 impl TiledEguiImage {
-    pub fn new(ctx: &egui::Context) -> Self {
-        const MAX_TEXTURE_SIZE: usize = 512;
-        let texture_width = ctx.fonts(|r| r.max_texture_side()).min(MAX_TEXTURE_SIZE);
+    pub fn from_tile_size(texture_width: usize) -> Self {
         Self {
             tiles: Default::default(),
             texture_width,
         }
+    }
+
+    pub fn new(ctx: &egui::Context) -> Self {
+        const MAX_TEXTURE_SIZE: usize = 512;
+        let texture_width = ctx.fonts(|r| r.max_texture_side()).min(MAX_TEXTURE_SIZE);
+        Self::from_tile_size(texture_width)
     }
 
     fn calc_tile(&self, x: isize, y: isize) -> (isize, isize) {

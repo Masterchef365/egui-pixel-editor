@@ -28,6 +28,13 @@ pub struct ImageEditor<Pixel> {
 }
 
 impl<Pixel: PixelInterface> ImageEditor<Pixel> {
+    pub fn from_tile_size(tile_texture_width: usize) -> Self {
+        Self {
+            tiles: TiledEguiImage::from_tile_size(tile_texture_width),
+            undoer: SparseImageUndoer::new(),
+        } 
+    }
+
     pub fn new(ctx: &egui::Context) -> Self {
         Self {
             tiles: TiledEguiImage::new(ctx),

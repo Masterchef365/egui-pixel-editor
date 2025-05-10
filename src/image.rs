@@ -139,4 +139,23 @@ impl PixelInterface for Color32 {
     }
 }
 
+#[cfg(feature = "ndarray")]
+impl<T: Clone> Image for ndarray::Array2<T> {
+    type Pixel = T;
+    fn get_pixel(&self, x: isize, y: isize) -> Self::Pixel {
+        let x: usize = x.try_into().unwrap();
+        let y: usize = y.try_into().unwrap();
+        self[(x, y)].clone()
+    }
 
+    fn set_pixel(&mut self, x: isize, y: isize, px: Self::Pixel) {
+        let x: usize = x.try_into().unwrap();
+        let y: usize = y.try_into().unwrap();
+        self[(x, y)] = px;
+    }
+
+    fn image_boundaries(&self) -> (RangeInclusive<isize>, RangeInclusive<isize>) {
+        let shape = self.shape();
+        (0..=(shape[1] - 1) as _, 0..=(shape[0] - 1) as _)
+    }
+}
