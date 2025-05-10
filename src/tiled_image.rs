@@ -106,6 +106,11 @@ impl TiledEguiImage {
     ) -> TileChangeTracker<'image, 'tiles, I> {
         TileChangeTracker { image, tiles: self }
     }
+
+    pub fn reset(&mut self) {
+        // TODO: Dealloc here?
+        self.tiles.clear();
+    }
 }
 
 impl Tile {

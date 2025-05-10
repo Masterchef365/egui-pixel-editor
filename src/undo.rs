@@ -109,6 +109,11 @@ impl<Pixel> SparseImageUndoer<Pixel> {
             undoer: self,
         }
     }
+
+    pub fn reset(&mut self) {
+        self.changes.clear();
+        self.redo.clear();
+    }
 }
 
 pub struct UndoChangeTracker<'image, 'undoer, I: Image + ?Sized> {
