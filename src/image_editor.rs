@@ -131,7 +131,7 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
 
     /// Forces the backend to upload to the GPU once more
     pub fn force_image_update(&mut self) {
-        self.tiles.reset();
+        self.tiles.mark_all_dirty();
         self.undoer.reset();
     }
 }

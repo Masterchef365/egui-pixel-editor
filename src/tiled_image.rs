@@ -107,9 +107,9 @@ impl TiledEguiImage {
         TileChangeTracker { image, tiles: self }
     }
 
-    pub fn reset(&mut self) {
+    pub fn mark_all_dirty(&mut self) {
         // TODO: Dealloc here?
-        self.tiles.clear();
+        self.tiles.values_mut().for_each(|tile| tile.is_dirty = true);
     }
 }
 
