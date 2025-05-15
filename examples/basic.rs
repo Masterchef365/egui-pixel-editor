@@ -30,10 +30,10 @@ fn main() {
                 ui.selectable_value(&mut mode, true, "Rectangle");
 
                 ui.label("Brush size");
-                ui.add(DragValue::new(&mut brush_width).range(1..=isize::MAX));
+                ui.add(DragValue::new(&mut brush_width).range(0..=isize::MAX));
                 ui.add_enabled_ui(!square_brush, |ui| {
                     ui.label("x");
-                    ui.add(DragValue::new(&mut brush_height).range(1..=isize::MAX));
+                    ui.add(DragValue::new(&mut brush_height).range(0..=isize::MAX));
                 });
                 ui.checkbox(&mut square_brush, "Square brush")
             });
