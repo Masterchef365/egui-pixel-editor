@@ -13,5 +13,7 @@ mod tiled_image;
 pub mod image;
 mod image_editor;
 mod undo;
+mod brush;
 
-pub use image_editor::{ImageEditor, Brush};
+pub use image_editor::ImageEditor;
+pub use brush::Brush;
