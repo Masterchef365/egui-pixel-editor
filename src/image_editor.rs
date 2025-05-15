@@ -146,7 +146,7 @@ impl Brush {
                         let dy2 = dy * dy;
                         let wx2 = wx * wx;
                         let wy2 = wy * wy;
-                        if dy2 * wx2 < wy2 * wx2 - wy2 * dx2 {
+                        if dy2 * wx2 <= wy2 * wx2 - wy2 * dx2 {
                             f(x + dx, y + dy);
                         }
                     }
