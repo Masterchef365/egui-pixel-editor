@@ -56,10 +56,32 @@ impl Brush {
                 );
             },
             Brush::Ellipse(wx, wy) => {
-                let x = pos.x as isize;
-                let y = pos.y as isize;
-                todo!()
-            }
+                let mut y = 0;
+
+                let mirror = |v: Vec2| Vec2::new(v.x, -v.y+1.);
+
+                let smart_line = |a: Vec2, b: Vec2| {
+                    paint.line_segment([pos + a, pos + b], stroke);
+                    paint.line_segment([pos + mirror(a), pos + mirror(b)], stroke);
+                };
+
+                for dx in -wx..=wx {
+                    let ny = ellipse::solve_ellipse(wx, wy, dx) + 1;
+                    let b = Vec2::new(dx as f32, ny as f32);
+                    if y != ny {
+                        let a = Vec2::new(dx as f32, y as f32);
+                        smart_line(a, b);
+                    }
+                    let a = Vec2::new((dx + 1) as f32, ny as f32);
+                    smart_line(a, b);
+
+                    y = ny;
+                }
+                let ny = ellipse::solve_ellipse(wx, wy, wx) + 1;
+                let a = Vec2::new((wx + 1) as f32, ny as f32);
+                let b = Vec2::new((wx + 1) as f32, 0.0);
+                smart_line(a, b);
+            },
         }
     }
 }
