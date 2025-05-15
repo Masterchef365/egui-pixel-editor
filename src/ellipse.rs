@@ -20,20 +20,16 @@ pub fn solve_ellipse(wx: isize, wy: isize, x: isize) -> isize {
 
     // NOTE: Should be logarithmic!
     for _ in 0..=isize::BITS {
-        let mid = (max + min) / 2;
-        let check_min = ellipse(wx, wy, x, min);
-        let check_max = ellipse(wx, wy, x, max);
-        let check_mid = ellipse(wx, wy, x, mid);
-        
-        if check_max {
+        if ellipse(wx, wy, x, max) {
             return max;
         }
         
-        if max - min == 1 && check_min {
+        if max - min == 1 && ellipse(wx, wy, x, min) {
             return min;
         }
         
-        if check_mid {
+        let mid = (max + min) / 2;
+        if ellipse(wx, wy, x, mid) {
             min = mid;
         } else {
             max = mid;
