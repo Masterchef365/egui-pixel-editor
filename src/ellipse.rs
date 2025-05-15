@@ -17,8 +17,12 @@ pub fn solve_ellipse(wx: isize, wy: isize, x: isize) -> isize {
     
     let mut min = 0;
     let mut max = wy;
-    
-    loop {
+
+    let mut nloops = 0;
+
+    // NOTE: Should be logarithmic!
+    for _ in 0..=isize::BITS {
+        nloops += 1;
         let mid = (max + min) / 2;
         let check_min = ellipse(wx, wy, x, min);
         let check_max = ellipse(wx, wy, x, max);
@@ -38,6 +42,8 @@ pub fn solve_ellipse(wx: isize, wy: isize, x: isize) -> isize {
             max = mid;
         }
     }
+
+    unreachable!("Ellipse went unsolved!")
 }
 
 #[cfg(test)]
