@@ -8,6 +8,8 @@ use egui::{
     Painter, Pos2, Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget,
 };
 
+use crate::ellipse;
+
 #[derive(Copy, Clone)]
 pub enum Brush {
     /// Width, Height
@@ -21,15 +23,13 @@ impl Brush {
         match *self {
             Brush::Ellipse(wx, wy) => {
                 for dy in -wy..=wy {
-                    for dx in -wx..=wx {
-                        let dx2 = dx * dx;
-                        let dy2 = dy * dy;
-                        let wx2 = wx * wx;
-                        let wy2 = wy * wy;
-                        if dy2 * wx2 <= wy2 * wx2 - wy2 * dx2 {
-                            f(x + dx, y + dy);
-                        }
+                    // Note: the ellipse is on its side here ...
+                    let mx = ellipse::solve_ellipse(wy, wx, dy);
+
+                    for dx in -mx..=mx {
+                        f(x + dx, y + dy);
                     }
+                    
                 }
             }
             Brush::Rectangle(wx, wy) => {
@@ -43,19 +43,23 @@ impl Brush {
     }
 
     pub fn draw(&self, paint: &Painter, pos: Pos2) {
+        let stroke = Stroke::new(0.1, Color32::LIGHT_GRAY);
         match *self {
-            Brush::Rectangle(wx, wy) | Brush::Ellipse(wx, wy) => {
+            Brush::Rectangle(wx, wy) => {
                 let v = Vec2::new(wx as f32, wy as f32);
                 let rect = Rect::from_min_max(pos - v, pos + v + Vec2::splat(1.0));
                 paint.rect_stroke(
                     rect,
                     0.,
-                    Stroke::new(0.1, Color32::LIGHT_GRAY),
+                    stroke,
                     StrokeKind::Middle,
                 );
             },
-            /*Brush::Ellipse(wx, wy) => {
-            }*/
+            Brush::Ellipse(wx, wy) => {
+                let x = pos.x as isize;
+                let y = pos.y as isize;
+                todo!()
+            }
         }
     }
 }

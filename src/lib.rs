@@ -14,6 +14,7 @@ pub mod image;
 mod image_editor;
 mod undo;
 mod brush;
+mod ellipse;
 
 pub use image_editor::ImageEditor;
 pub use brush::Brush;
