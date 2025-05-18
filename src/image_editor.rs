@@ -59,10 +59,6 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
 
         let resp = ui.allocate_response(image_rect.size(), Sense::click_and_drag());
 
-        if resp.drag_started() || resp.clicked() {
-            self.undoer.new_frame();
-        }
-
         self.tiles.draw(ui, image, resp.rect.min);
 
         let mut image = self.tiles.track(image);
@@ -116,6 +112,10 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
                 image.set_pixel_checked(x, y, draw_color);
             });
             //self.undoer.sync_set_pixel(image, x, y, draw);
+        }
+
+        if resp.drag_stopped() || resp.clicked() {
+            self.undoer.new_frame();
         }
 
         resp
