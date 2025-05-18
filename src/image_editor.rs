@@ -63,6 +63,33 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
 
         let mut image = self.tiles.track(image);
 
+        
+        let egui_to_pixel = |pos: Pos2| -> (isize, isize) {
+            let pos = (pos - resp.rect.min.to_vec2()).floor();
+            (pos.x as _, pos.y as _)
+        };
+
+        let pixel_to_egui =
+            |(x, y): (isize, isize)| -> Pos2 { resp.rect.min + Vec2::new(x as _, y as _) };
+
+        if let Some(pointer_pos) = resp.hover_pos() {
+            let quantized_pos = pixel_to_egui(egui_to_pixel(pointer_pos));
+            brush.draw(ui.painter(), quantized_pos);
+        }
+
+        if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
+            let (x, y) = egui_to_pixel(interact_pointer_pos);
+            let mut image = self.undoer.track(&mut image);
+            brush.pixels(x, y, |x, y| {
+                image.set_pixel_checked(x, y, draw_color);
+            });
+            //self.undoer.sync_set_pixel(image, x, y, draw);
+        }
+
+        if resp.drag_stopped() || resp.clicked() {
+            self.undoer.new_frame();
+        }
+
         let events = ui.input(|i| i.filtered_events(&EventFilter::default()));
         for event in events {
             match event {
@@ -92,31 +119,6 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
             }
         }
 
-        let egui_to_pixel = |pos: Pos2| -> (isize, isize) {
-            let pos = (pos - resp.rect.min.to_vec2()).floor();
-            (pos.x as _, pos.y as _)
-        };
-
-        let pixel_to_egui =
-            |(x, y): (isize, isize)| -> Pos2 { resp.rect.min + Vec2::new(x as _, y as _) };
-
-        if let Some(pointer_pos) = resp.hover_pos() {
-            let quantized_pos = pixel_to_egui(egui_to_pixel(pointer_pos));
-            brush.draw(ui.painter(), quantized_pos);
-        }
-
-        if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
-            let (x, y) = egui_to_pixel(interact_pointer_pos);
-            let mut image = self.undoer.track(&mut image);
-            brush.pixels(x, y, |x, y| {
-                image.set_pixel_checked(x, y, draw_color);
-            });
-            //self.undoer.sync_set_pixel(image, x, y, draw);
-        }
-
-        if resp.drag_stopped() || resp.clicked() {
-            self.undoer.new_frame();
-        }
 
         resp
     }

@@ -78,6 +78,7 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         }
 
         self.redo.push(frame);
+        self.changes.push(vec![]);
     }
 
     pub fn redo<I>(&mut self, image: &mut I)
@@ -98,6 +99,7 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         }
 
         self.changes.push(frame);
+        self.changes.push(vec![]);
     }
 
     pub fn track<'undoer, 'image, I: Image<Pixel = Pixel>>(
