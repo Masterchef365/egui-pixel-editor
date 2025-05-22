@@ -139,6 +139,13 @@ impl PixelInterface for Color32 {
     }
 }
 
+impl PixelInterface for [u8; 3] {
+    fn as_rgba(&self) -> Color32 {
+        let [r, g, b] = *self;
+        Color32::from_rgb(r, g, b)
+    }
+}
+
 #[cfg(feature = "ndarray")]
 impl<T: Clone> Image for ndarray::Array2<T> {
     type Pixel = T;
