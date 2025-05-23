@@ -11,7 +11,8 @@ use egui::{
 use crate::{
     image::{Image, ImageExt, PixelInterface},
     tiled_image::TiledEguiImage,
-    undo::SparseImageUndoer, Brush,
+    undo::SparseImageUndoer,
+    Brush,
 };
 
 pub struct ImageEditor<Pixel> {
@@ -24,7 +25,7 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         Self {
             tiles: TiledEguiImage::from_tile_size(tile_texture_width),
             undoer: SparseImageUndoer::new(),
-        } 
+        }
     }
 
     pub fn new(ctx: &egui::Context) -> Self {
@@ -34,11 +35,7 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         }
     }
 
-    pub fn draw(&mut self, 
-        ui: &mut Ui,
-        image: &mut impl Image<Pixel = Pixel>,
-        pos: Pos2,
-    ) {
+    pub fn draw(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = Pixel>, pos: Pos2) {
         self.tiles.draw(ui, image, pos)
     }
 
@@ -48,7 +45,8 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         image: &mut impl Image<Pixel = Pixel>,
         draw_color: Pixel,
         brush: Brush,
-    ) -> egui::Response where
+    ) -> egui::Response
+    where
         Pixel: PartialEq + Copy,
     {
         let (x_range, y_range) = image.image_boundaries();
@@ -63,7 +61,6 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
 
         let mut image = self.tiles.track(image);
 
-        
         let egui_to_pixel = |pos: Pos2| -> (isize, isize) {
             let pos = (pos - resp.rect.min.to_vec2()).floor();
             (pos.x as _, pos.y as _)
@@ -74,16 +71,19 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
 
         if let Some(pointer_pos) = resp.hover_pos() {
             let quantized_pos = pixel_to_egui(egui_to_pixel(pointer_pos));
-            brush.draw(ui.painter(), quantized_pos);
+            brush.shape.draw(ui.painter(), quantized_pos);
         }
 
         if let Some(interact_pointer_pos) = resp.interact_pointer_pos() {
-            let (x, y) = egui_to_pixel(interact_pointer_pos);
-            let mut image = self.undoer.track(&mut image);
-            brush.pixels(x, y, |x, y| {
-                image.set_pixel_checked(x, y, draw_color);
-            });
-            //self.undoer.sync_set_pixel(image, x, y, draw);
+            if resp.clicked() || resp.dragged() {
+                let (xf, yf) = egui_to_pixel(interact_pointer_pos);
+                let (xi, yi) = egui_to_pixel(interact_pointer_pos - resp.drag_delta());
+
+                let mut image = self.undoer.track(&mut image);
+                brush.pixels(xi, yi, xf, yf, |x, y| {
+                    image.set_pixel_checked(x, y, draw_color);
+                });
+            }
         }
 
         if resp.drag_stopped() || resp.clicked() {
@@ -119,7 +119,6 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
             }
         }
 
-
         resp
     }
 
@@ -129,5 +128,3 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         self.undoer.reset();
     }
 }
-
-

@@ -1,5 +1,5 @@
 use egui::{CentralPanel, Color32, ColorImage, DragValue, Rect, Scene};
-use egui_pixel_editor::{Brush, ImageEditor};
+use egui_pixel_editor::{Brush, BrushShape, ImageEditor};
 
 fn main() {
     let mut image = ColorImage::new([1000, 1000], Color32::BLACK);
@@ -15,6 +15,8 @@ fn main() {
     let mut brush_width = 1_isize;
     let mut brush_height = 1_isize;
     let mut square_brush = false;
+
+    let mut interpolate_brush = true;
 
     eframe::run_simple_native("image editor", Default::default(), move |ctx, _frame| {
         let editor = editor.get_or_insert_with(|| ImageEditor::new(ctx));
@@ -35,17 +37,22 @@ fn main() {
                     ui.label("x");
                     ui.add(DragValue::new(&mut brush_height).range(0..=isize::MAX));
                 });
-                ui.checkbox(&mut square_brush, "Square brush")
+
+                ui.checkbox(&mut interpolate_brush, "Interpolate brush");
+
+                ui.checkbox(&mut square_brush, "Square brush");
             });
 
             if square_brush {
                 brush_height = brush_width;
             }
 
-            let brush = match mode {
-                false => Brush::Ellipse(brush_width, brush_height),
-                true => Brush::Rectangle(brush_width, brush_height),
+            let shape = match mode {
+                false => BrushShape::Ellipse(brush_width, brush_height),
+                true => BrushShape::Rectangle(brush_width, brush_height),
             };
+
+            let brush = Brush { shape, interpolate: interpolate_brush };
 
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
                 Scene::new()

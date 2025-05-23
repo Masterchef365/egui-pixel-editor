@@ -11,7 +11,13 @@ use egui::{
 use crate::ellipse;
 
 #[derive(Copy, Clone)]
-pub enum Brush {
+pub struct Brush {
+    pub shape: BrushShape,
+    pub interpolate: bool,
+}
+
+#[derive(Copy, Clone)]
+pub enum BrushShape {
     /// Width, Height
     Ellipse(isize, isize),
     /// Width, Height
@@ -19,9 +25,29 @@ pub enum Brush {
 }
 
 impl Brush {
+    pub fn pixels(
+        &self,
+        xi: isize,
+        yi: isize,
+        xf: isize,
+        yf: isize,
+        mut f: impl FnMut(isize, isize),
+    ) {
+        self.shape.pixels(xi, yi, &mut f);
+
+        if self.interpolate {
+            // TODO: This kinda slow
+            for (x, y) in bresenham::Bresenham::new((xi, yi), (xf, yf)) {
+                self.shape.pixels(x, y, &mut f);
+            }
+        }
+    }
+}
+
+impl BrushShape {
     pub fn pixels(&self, x: isize, y: isize, mut f: impl FnMut(isize, isize)) {
         match *self {
-            Brush::Ellipse(wx, wy) => {
+            Self::Ellipse(wx, wy) => {
                 for dy in -wy..=wy {
                     // Note: the ellipse is on its side here ...
                     let mx = ellipse::solve_ellipse(wy, wx, dy);
@@ -29,10 +55,9 @@ impl Brush {
                     for dx in -mx..=mx {
                         f(x + dx, y + dy);
                     }
-                    
                 }
             }
-            Brush::Rectangle(wx, wy) => {
+            Self::Rectangle(wx, wy) => {
                 for dy in -wy..=wy {
                     for dx in -wx..=wx {
                         f(x + dx, y + dy);
@@ -43,22 +68,17 @@ impl Brush {
     }
 
     pub fn draw(&self, paint: &Painter, pos: Pos2) {
-        let stroke = Stroke::new(0.1, Color32::LIGHT_GRAY);
+        let stroke = Stroke::new(0.5, Color32::LIGHT_GRAY);
         match *self {
-            Brush::Rectangle(wx, wy) => {
+            Self::Rectangle(wx, wy) => {
                 let v = Vec2::new(wx as f32, wy as f32);
                 let rect = Rect::from_min_max(pos - v, pos + v + Vec2::splat(1.0));
-                paint.rect_stroke(
-                    rect,
-                    0.,
-                    stroke,
-                    StrokeKind::Middle,
-                );
-            },
-            Brush::Ellipse(wx, wy) => {
+                paint.rect_stroke(rect, 0., stroke, StrokeKind::Middle);
+            }
+            Self::Ellipse(wx, wy) => {
                 let mut y = 0;
 
-                let mirror = |v: Vec2| Vec2::new(v.x, -v.y+1.);
+                let mirror = |v: Vec2| Vec2::new(v.x, -v.y + 1.);
 
                 let smart_line = |a: Vec2, b: Vec2| {
                     paint.line_segment([pos + a, pos + b], stroke);
@@ -81,13 +101,19 @@ impl Brush {
                 let a = Vec2::new((wx + 1) as f32, ny as f32);
                 let b = Vec2::new((wx + 1) as f32, 0.0);
                 smart_line(a, b);
-            },
+            }
         }
+    }
+}
+
+impl Default for BrushShape {
+    fn default() -> Self {
+        Self::Rectangle(0, 0)
     }
 }
 
 impl Default for Brush {
     fn default() -> Self {
-        Self::Rectangle(0, 0)
+        Self { shape: BrushShape::default(), interpolate: true }
     }
 }
