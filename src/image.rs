@@ -20,13 +20,6 @@ pub trait Image {
     fn image_boundaries(&self) -> (RangeInclusive<isize>, RangeInclusive<isize>);
 }
 
-pub trait PixelInterface {
-    /// What color should we display this pixel as?
-    /// Allows transparency.
-    /// This should be a pure function.
-    fn as_rgba(&self) -> Color32;
-}
-
 pub struct Crop<'image, I: Image + ?Sized> {
     x_range: RangeInclusive<isize>,
     y_range: RangeInclusive<isize>,
@@ -130,19 +123,6 @@ impl Image for ColorImage {
 
     fn image_boundaries(&self) -> (RangeInclusive<isize>, RangeInclusive<isize>) {
         (0..=(self.width() - 1) as _, 0..=(self.height() - 1) as _)
-    }
-}
-
-impl PixelInterface for Color32 {
-    fn as_rgba(&self) -> Color32 {
-        *self
-    }
-}
-
-impl PixelInterface for [u8; 3] {
-    fn as_rgba(&self) -> Color32 {
-        let [r, g, b] = *self;
-        Color32::from_rgb(r, g, b)
     }
 }
 

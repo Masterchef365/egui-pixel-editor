@@ -8,7 +8,7 @@ use egui::{
     Painter, Pos2, Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget,
 };
 
-use crate::image::{Image, ImageExt, PixelInterface};
+use crate::image::{Image, ImageExt};
 
 
 #[derive(Copy, Clone)]
@@ -48,11 +48,11 @@ impl TiledEguiImage {
         }
     }
 
-    pub fn draw<T: PixelInterface>(
+    pub fn draw<T>(
         &mut self,
         ui: &mut Ui,
         image: &mut impl Image<Pixel = T>,
-        mut color: impl Fn(T) -> Color32,
+        color: impl Fn(T) -> Color32,
         pos: Pos2,
     ) {
         let (x_range, y_range) = image.image_boundaries();
@@ -147,7 +147,7 @@ where
     }
 }
 
-fn sample_patch<T: PixelInterface>(
+fn sample_patch<T>(
     source: &impl Image<Pixel = T>,
     color: &impl Fn(T) -> Color32,
     texture_width: usize,

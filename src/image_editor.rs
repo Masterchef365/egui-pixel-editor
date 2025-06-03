@@ -9,7 +9,7 @@ use egui::{
 };
 
 use crate::{
-    image::{Image, ImageExt, PixelInterface},
+    image::{Image, ImageExt},
     tiled_image::TiledEguiImage,
     undo::SparseImageUndoer,
     Brush,
@@ -20,7 +20,7 @@ pub struct ImageEditor<Pixel> {
     undoer: SparseImageUndoer<Pixel>,
 }
 
-impl<Pixel: PixelInterface> ImageEditor<Pixel> {
+impl<Pixel> ImageEditor<Pixel> {
     pub fn from_tile_size(tile_texture_width: usize) -> Self {
         Self {
             tiles: TiledEguiImage::from_tile_size(tile_texture_width),
