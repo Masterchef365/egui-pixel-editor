@@ -52,6 +52,7 @@ impl TiledEguiImage {
         &mut self,
         ui: &mut Ui,
         image: &mut impl Image<Pixel = T>,
+        mut color: impl Fn(T) -> Color32,
         pos: Pos2,
     ) {
         let (x_range, y_range) = image.image_boundaries();
@@ -70,7 +71,7 @@ impl TiledEguiImage {
 
                 let mut get_patch = || {
                     let crop = image.crop(x..=x + texture_width - 1, y..=y + texture_width - 1);
-                    sample_patch(&crop, self.texture_width)
+                    sample_patch(&crop, &color, self.texture_width)
                 };
 
                 let tex_options = TextureOptions::NEAREST;
@@ -148,6 +149,7 @@ where
 
 fn sample_patch<T: PixelInterface>(
     source: &impl Image<Pixel = T>,
+    color: &impl Fn(T) -> Color32,
     texture_width: usize,
 ) -> ColorImage {
     let (x_range, y_range) = source.image_boundaries();
@@ -158,7 +160,7 @@ fn sample_patch<T: PixelInterface>(
         for x in 0..texture_width as isize {
             let x = x + x_range.start();
             let color = match source.get_pixel_checked(x, y) {
-                Some(px) => px.as_rgba(),
+                Some(px) => color(px),
                 None => Color32::TRANSPARENT,
             };
             pixels.push(color);

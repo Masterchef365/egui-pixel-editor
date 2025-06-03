@@ -35,14 +35,20 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
         }
     }
 
-    pub fn draw(&mut self, ui: &mut Ui, image: &mut impl Image<Pixel = Pixel>, pos: Pos2) {
-        self.tiles.draw(ui, image, pos)
+    pub fn draw(&mut self, 
+        ui: &mut Ui,
+        image: &mut impl Image<Pixel = Pixel>,
+        coloring_func: impl Fn(Pixel) -> Color32,
+        pos: Pos2,
+    ) {
+        self.tiles.draw(ui, image, coloring_func, pos)
     }
 
     pub fn edit(
         &mut self,
         ui: &mut Ui,
         image: &mut impl Image<Pixel = Pixel>,
+        coloring_func: impl Fn(Pixel) -> Color32,
         draw_color: Pixel,
         brush: Brush,
     ) -> egui::Response
@@ -57,7 +63,7 @@ impl<Pixel: PixelInterface> ImageEditor<Pixel> {
 
         let resp = ui.allocate_response(image_rect.size(), Sense::click_and_drag());
 
-        self.tiles.draw(ui, image, resp.rect.min);
+        self.tiles.draw(ui, image, coloring_func, resp.rect.min);
 
         let mut image = self.tiles.track(image);
 

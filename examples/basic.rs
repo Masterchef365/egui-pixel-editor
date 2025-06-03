@@ -58,7 +58,7 @@ fn main() {
                 Scene::new()
                     .zoom_range(0.1..=100.0)
                     .show(ui, &mut scene_rect, |ui| {
-                        editor.edit(ui, &mut image, color, brush);
+                        editor.edit(ui, &mut image, |c| c, color, brush);
                     });
             });
         });
