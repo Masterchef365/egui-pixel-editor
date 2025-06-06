@@ -16,5 +16,6 @@ mod undo;
 mod brush;
 mod ellipse;
 
-pub use image_editor::ImageEditor;
+pub use image_editor::*;
+pub use tiled_image::*;
 pub use brush::*;
