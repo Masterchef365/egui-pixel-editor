@@ -2,7 +2,7 @@ use egui::{CentralPanel, Color32, ColorImage, DragValue, Rect, Scene};
 use egui_pixel_editor::{Brush, BrushShape, ImageEditor};
 
 fn main() {
-    let mut image = ColorImage::new([1000, 1000], Color32::BLACK);
+    let mut image = ColorImage::filled([1000, 1000], Color32::BLACK);
     image.pixels.chunks_mut(3).for_each(|a| a[0] = Color32::RED);
 
     let mut scene_rect = Rect::ZERO;

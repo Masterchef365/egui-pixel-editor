@@ -169,6 +169,7 @@ fn sample_patch<T>(
 
     ColorImage {
         size: [texture_width as usize; 2],
+        source_size: Vec2::splat(texture_width as f32),
         pixels,
     }
 }
