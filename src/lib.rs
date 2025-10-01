@@ -15,7 +15,9 @@ mod image_editor;
 mod undo;
 mod brush;
 mod ellipse;
+mod widget;
 
 pub use image_editor::*;
 pub use tiled_image::*;
 pub use brush::*;
+pub use widget::*;
