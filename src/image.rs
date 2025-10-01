@@ -20,18 +20,18 @@ pub trait Image {
     fn image_boundaries(&self) -> (RangeInclusive<isize>, RangeInclusive<isize>);
 }
 
-pub struct Crop<'image, I: Image + ?Sized> {
+pub struct Crop<'image, I: ?Sized> {
     x_range: RangeInclusive<isize>,
     y_range: RangeInclusive<isize>,
     image: &'image mut I,
 }
 
 pub trait ImageExt: Image {
-    fn crop(
-        &mut self,
+    fn crop<'a>(
+        &'a mut self,
         x_range: RangeInclusive<isize>,
         y_range: RangeInclusive<isize>,
-    ) -> Crop<Self> {
+    ) -> Crop<'a, Self> {
         let (image_x_range, image_y_range) = self.image_boundaries();
         let x_range = (*x_range.start()).max(*image_x_range.start())
             ..=(*x_range.end()).min(*image_x_range.end());
@@ -73,7 +73,7 @@ pub trait ImageExt: Image {
     }
 }
 
-impl<T: Image + ?Sized> ImageExt for T {}
+impl<T: Image + Sized> ImageExt for T {}
 
 impl<I: Image> Image for Crop<'_, I> {
     type Pixel = I::Pixel;

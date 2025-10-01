@@ -1,5 +1,5 @@
 use egui::{CentralPanel, Color32, ColorImage, DragValue, Rect, Scene};
-use egui_pixel_editor::{Brush, BrushShape, ImageEditor};
+use egui_pixel_editor::{Brush, BrushShape, ImageEditorState};
 
 fn main() {
     let mut image = ColorImage::filled([1000, 1000], Color32::BLACK);
@@ -19,7 +19,7 @@ fn main() {
     let mut interpolate_brush = true;
 
     eframe::run_simple_native("image editor", Default::default(), move |ctx, _frame| {
-        let editor = editor.get_or_insert_with(|| ImageEditor::new(ctx));
+        let editor = editor.get_or_insert_with(|| ImageEditorState::default());
 
         CentralPanel::default().show(ctx, |ui| {
             ui.heading("Image Editor");

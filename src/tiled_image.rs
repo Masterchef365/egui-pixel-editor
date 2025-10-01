@@ -48,11 +48,11 @@ impl TiledEguiImage {
         }
     }
 
-    pub fn draw<T>(
+    pub fn draw<I: Image>(
         &mut self,
         ui: &mut Ui,
-        image: &mut impl Image<Pixel = T>,
-        color: impl Fn(T) -> Color32,
+        image: &mut I,
+        color: impl Fn(I::Pixel) -> Color32,
         pos: Pos2,
     ) {
         let (x_range, y_range) = image.image_boundaries();
@@ -147,9 +147,9 @@ where
     }
 }
 
-fn sample_patch<T>(
-    source: &impl Image<Pixel = T>,
-    color: &impl Fn(T) -> Color32,
+fn sample_patch<I: Image>(
+    source: &I,
+    color: &impl Fn(I::Pixel) -> Color32,
     texture_width: usize,
 ) -> ColorImage {
     let (x_range, y_range) = source.image_boundaries();
