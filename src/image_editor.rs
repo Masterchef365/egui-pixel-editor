@@ -18,10 +18,11 @@ pub struct ImageEditorState<Pixel> {
     undoer: SparseImageUndoer<Pixel>,
 }
 
-type SharedImageEditorState<Pixel> = Arc<Mutex<ImageEditorState<Pixel>>>;
+pub type SharedImageEditorState<Pixel> = Arc<Mutex<ImageEditorState<Pixel>>>;
 
 impl<Pixel> Default for ImageEditorState<Pixel> {
     fn default() -> Self {
+        eprintln!("NEW STATE");
         Self {
             tiles: TiledEguiImage::from_tile_size(512),
             undoer: SparseImageUndoer::new(),
@@ -134,11 +135,15 @@ impl<Pixel: Send + Sync + 'static> ImageEditorState<Pixel> {
         self.undoer.reset();
     }
 
-    pub fn load(ctx: &Context, id: Id) -> Option<SharedImageEditorState<Pixel>> {
-        ctx.data_mut(|d| d.get_temp(id))
-    }
+    pub fn load_or_default(ctx: &Context, id: Id) -> SharedImageEditorState<Pixel> {
+        let shared: Option<SharedImageEditorState<Pixel>> = ctx.data_mut(|d| d.get_temp(id));
+        let was_created = shared.is_none();
+        let shared = shared.unwrap_or_default();
 
-    pub fn store(value: SharedImageEditorState<Pixel>, ctx: &Context, id: Id) {
-        ctx.data_mut(|d| d.insert_temp(id, value));
+        if was_created {
+            ctx.data_mut(|d| d.insert_temp(id, shared.clone()));
+        }
+
+        shared
     }
 }
