@@ -24,7 +24,6 @@ pub type SharedImageEditorState<Pixel> = Arc<Mutex<ImageEditorState<Pixel>>>;
 
 impl<Pixel> Default for ImageEditorState<Pixel> {
     fn default() -> Self {
-        eprintln!("NEW STATE");
         Self {
             tiles: TiledEguiImage::from_tile_size(512),
             undoer: SparseImageUndoer::new(),

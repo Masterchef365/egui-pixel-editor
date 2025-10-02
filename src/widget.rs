@@ -67,7 +67,7 @@ impl<I: Image> ImageEditor<'_, I> {
         if let Some(id_salt) = self.id_salt {
             ui.make_persistent_id(id_salt)
         } else {
-            dbg!(ui.next_auto_id())
+            ui.next_auto_id()
         }
     }
 }
