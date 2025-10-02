@@ -8,6 +8,7 @@ use egui::{
     Painter, Pos2, Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget,
 };
 
+/// Abstraction over mutable 2D arrays
 pub trait Image {
     type Pixel;
     /// Gets the pixel at `(x, y)`
@@ -20,12 +21,14 @@ pub trait Image {
     fn image_boundaries(&self) -> (RangeInclusive<isize>, RangeInclusive<isize>);
 }
 
+/// A wrapper over an image which crops it to a smaller size
 pub struct Crop<'image, I: ?Sized> {
     x_range: RangeInclusive<isize>,
     y_range: RangeInclusive<isize>,
     image: &'image mut I,
 }
 
+/// Extension trait for Images
 pub trait ImageExt: Image {
     fn crop<'a>(
         &'a mut self,

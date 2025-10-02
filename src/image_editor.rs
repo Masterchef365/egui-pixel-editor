@@ -13,11 +13,13 @@ use crate::{
     Brush,
 };
 
+/// Image editor state, ala TextEditState
 pub struct ImageEditorState<Pixel> {
     tiles: TiledEguiImage,
     undoer: SparseImageUndoer<Pixel>,
 }
 
+/// Shared version of the image editor state
 pub type SharedImageEditorState<Pixel> = Arc<Mutex<ImageEditorState<Pixel>>>;
 
 impl<Pixel> Default for ImageEditorState<Pixel> {

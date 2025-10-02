@@ -10,6 +10,7 @@ use egui::{
 
 use crate::ellipse;
 
+/// Brush settings
 #[derive(Copy, Clone)]
 pub struct Brush {
     pub shape: BrushShape,

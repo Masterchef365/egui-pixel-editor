@@ -1,7 +1,8 @@
 use egui::{Color32, Id, Ui, Widget};
 
-use crate::{image::Image, Brush, ImageEditorState};
+use crate::{image::Image, Brush, image_editor::ImageEditorState};
 
+/// Image editor widget
 pub struct ImageEditor<'image, I: Image> {
     image: &'image mut I,
     id_salt: Option<Id>,

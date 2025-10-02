@@ -1,4 +1,3 @@
-//! Display a large image as many smaller textures
 use std::{
     collections::{HashMap, HashSet},
     ops::RangeInclusive,
