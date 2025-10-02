@@ -7,14 +7,12 @@ pub fn ellipse(wx: isize, wy: isize, x: isize, y: isize) -> bool {
     y2 * wx2 <= wy2 * wx2 - wy2 * x2
 }
 
-
-
 pub fn solve_ellipse(wx: isize, wy: isize, x: isize) -> isize {
     assert!(wx >= 0);
     assert!(wy >= 0);
     assert!(x <= wx);
     assert!(x >= -wx);
-    
+
     let mut min = 0;
     let mut max = wy;
 
@@ -23,11 +21,11 @@ pub fn solve_ellipse(wx: isize, wy: isize, x: isize) -> isize {
         if ellipse(wx, wy, x, max) {
             return max;
         }
-        
+
         if max - min == 1 && ellipse(wx, wy, x, min) {
             return min;
         }
-        
+
         let mid = (max + min) / 2;
         if ellipse(wx, wy, x, mid) {
             min = mid;
@@ -82,5 +80,4 @@ mod tests {
     fn test_solve_ellipse() {
         check_solve_ellipse(solve_ellipse)
     }
-
 }

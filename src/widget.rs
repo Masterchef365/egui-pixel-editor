@@ -1,6 +1,6 @@
 use egui::{Color32, Id, Ui, Widget};
 
-use crate::{image::Image, Brush, image_editor::ImageEditorState};
+use crate::{Brush, image::Image, image_editor::ImageEditorState};
 
 /// Image editor widget
 pub struct ImageEditor<'image, I: Image> {
@@ -47,8 +47,6 @@ impl<I: Image> ImageEditor<'_, I> {
                 self.brush_value,
                 self.brush_shape,
             );
-
-        
 
         resp
     }

@@ -4,8 +4,8 @@ use std::{
 };
 
 use egui::{
-    epaint::ImageDelta, Color32, ColorImage, Event, EventFilter, Id, ImageData, Key, Modifiers,
-    Painter, Pos2, Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget,
+    Color32, ColorImage, Event, EventFilter, Id, ImageData, Key, Modifiers, Painter, Pos2, Rect,
+    Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget, epaint::ImageDelta,
 };
 
 /// Abstraction over mutable 2D arrays
@@ -66,7 +66,7 @@ pub trait ImageExt: Image {
         let ret = self.bounds_check(x, y);
         if ret {
             self.set_pixel(x, y, px);
-        } 
+        }
         ret
     }
 

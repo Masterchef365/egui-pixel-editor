@@ -4,8 +4,8 @@ use std::{
 };
 
 use egui::{
-    epaint::ImageDelta, Color32, ColorImage, Event, EventFilter, Id, ImageData, Key, Modifiers,
-    Painter, Pos2, Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget,
+    Color32, ColorImage, Event, EventFilter, Id, ImageData, Key, Modifiers, Painter, Pos2, Rect,
+    Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget, epaint::ImageDelta,
 };
 
 use crate::image::Image;

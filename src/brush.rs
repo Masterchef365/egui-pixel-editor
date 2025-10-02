@@ -4,8 +4,8 @@ use std::{
 };
 
 use egui::{
-    epaint::ImageDelta, Color32, ColorImage, Event, EventFilter, Id, ImageData, Key, Modifiers,
-    Painter, Pos2, Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget,
+    Color32, ColorImage, Event, EventFilter, Id, ImageData, Key, Modifiers, Painter, Pos2, Rect,
+    Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget, epaint::ImageDelta,
 };
 
 use crate::ellipse;
@@ -115,6 +115,9 @@ impl Default for BrushShape {
 
 impl Default for Brush {
     fn default() -> Self {
-        Self { shape: BrushShape::default(), interpolate: true }
+        Self {
+            shape: BrushShape::default(),
+            interpolate: true,
+        }
     }
 }

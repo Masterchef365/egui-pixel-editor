@@ -4,12 +4,11 @@ use std::{
 };
 
 use egui::{
-    epaint::ImageDelta, Color32, ColorImage, Event, EventFilter, Id, ImageData, Key, Modifiers,
-    Painter, Pos2, Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget,
+    Color32, ColorImage, Event, EventFilter, Id, ImageData, Key, Modifiers, Painter, Pos2, Rect,
+    Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget, epaint::ImageDelta,
 };
 
 use crate::image::{Image, ImageExt};
-
 
 #[derive(Copy, Clone)]
 struct Tile {
@@ -110,7 +109,9 @@ impl TiledEguiImage {
 
     pub fn mark_all_dirty(&mut self) {
         // TODO: Dealloc here?
-        self.tiles.values_mut().for_each(|tile| tile.is_dirty = true);
+        self.tiles
+            .values_mut()
+            .for_each(|tile| tile.is_dirty = true);
     }
 }
 

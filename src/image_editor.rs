@@ -1,16 +1,21 @@
 use std::{
-    collections::{HashMap, HashSet}, marker::PhantomData, ops::RangeInclusive, sync::{Arc, Mutex}
+    collections::{HashMap, HashSet},
+    marker::PhantomData,
+    ops::RangeInclusive,
+    sync::{Arc, Mutex},
 };
 
 use egui::{
-    epaint::ImageDelta, Color32, ColorImage, Context, Event, EventFilter, Id, ImageData, Key, Modifiers, Painter, Pos2, Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget
+    Color32, ColorImage, Context, Event, EventFilter, Id, ImageData, Key, Modifiers, Painter, Pos2,
+    Rect, Sense, Stroke, StrokeKind, TextureId, TextureOptions, Ui, Vec2, Widget,
+    epaint::ImageDelta,
 };
 
 use crate::{
+    Brush,
     image::{Image, ImageExt},
     tiled_image::TiledEguiImage,
     undo::SparseImageUndoer,
-    Brush,
 };
 
 /// Image editor state, ala TextEditState
@@ -33,7 +38,8 @@ impl<Pixel> Default for ImageEditorState<Pixel> {
 
 impl<Pixel: Send + Sync + 'static> ImageEditorState<Pixel> {
     /// Only draws the image, but doesn't allow editing it.
-    pub fn draw(&mut self, 
+    pub fn draw(
+        &mut self,
         ui: &mut Ui,
         image: &mut impl Image<Pixel = Pixel>,
         coloring_func: impl Fn(Pixel) -> Color32,

@@ -52,7 +52,10 @@ fn main() {
                 true => BrushShape::Rectangle(brush_width, brush_height),
             };
 
-            let brush = Brush { shape, interpolate: interpolate_brush };
+            let brush = Brush {
+                shape,
+                interpolate: interpolate_brush,
+            };
 
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
                 Scene::new()
