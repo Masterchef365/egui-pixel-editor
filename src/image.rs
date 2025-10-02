@@ -12,10 +12,10 @@ use egui::{
 pub trait Image {
     type Pixel;
     /// Gets the pixel at `(x, y)`
-    /// Allowed to panic outside of image_boundaries if `set_pixel_out_of_bounds` is `false`.
+    /// Allowed to panic outside of image_boundaries.
     fn get_pixel(&self, x: isize, y: isize) -> Self::Pixel;
     /// Sets the pixel at `(x, y)` to `px`.
-    /// Allowed to panic outside of image_boundaries if `set_pixel_out_of_bounds` is `false`.
+    /// Allowed to panic outside of image_boundaries.
     fn set_pixel(&mut self, x: isize, y: isize, px: Self::Pixel);
     /// Returns the boundaries of the image; may grow over time (but not shrink!)
     fn image_boundaries(&self) -> (RangeInclusive<isize>, RangeInclusive<isize>);
