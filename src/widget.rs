@@ -33,7 +33,7 @@ impl<I: Image> ImageEditor<'_, I> {
         coloring_func: impl Fn(I::Pixel) -> Color32,
     ) -> egui::Response
     where
-        I::Pixel: Send + Sync + PartialEq + Copy + 'static,
+        I::Pixel: Send + Sync + Copy + 'static,
     {
         let id = self.get_id(ui);
 
@@ -72,7 +72,7 @@ impl<I: Image> ImageEditor<'_, I> {
 
 impl<I: Image> Widget for ImageEditor<'_, I>
 where
-    I::Pixel: Into<Color32> + Send + Sync + PartialEq + Copy + 'static,
+    I::Pixel: Into<Color32> + Send + Sync + Copy + 'static,
 {
     fn ui(mut self, ui: &mut Ui) -> egui::Response {
         self.edit(ui, |x| x.into())

@@ -40,7 +40,7 @@ impl<Pixel> SparseImageUndoer<Pixel> {
     pub fn set_pixel<I>(&mut self, image: &mut I, x: isize, y: isize, new_px: Pixel)
     where
         I: Image<Pixel = Pixel> + ?Sized,
-        I::Pixel: PartialEq + Copy,
+        I::Pixel: Copy,
     {
         if self.changes.is_empty() {
             self.changes.push(Vec::new());
@@ -48,17 +48,15 @@ impl<Pixel> SparseImageUndoer<Pixel> {
         let frame = self.changes.last_mut().unwrap();
 
         let old_px = image.get_pixel(x, y);
-        if new_px != old_px {
-            frame.push((x, y, old_px, new_px));
-            image.set_pixel(x, y, new_px);
-            self.redo.clear();
-        }
+        frame.push((x, y, old_px, new_px));
+        image.set_pixel(x, y, new_px);
+        self.redo.clear();
     }
 
     pub fn undo<I>(&mut self, image: &mut I)
     where
         I: Image<Pixel = Pixel> + ?Sized,
-        I::Pixel: PartialEq + Copy,
+        I::Pixel: Copy,
     {
         let frame = loop {
             let Some(frame) = self.changes.pop() else {
@@ -69,11 +67,7 @@ impl<Pixel> SparseImageUndoer<Pixel> {
             }
         };
 
-        for (x, y, old, new) in frame.iter().rev().copied() {
-            debug_assert!(
-                new == image.get_pixel(x, y),
-                "Undo History did not match canvas!"
-            );
+        for (x, y, old, _new) in frame.iter().rev().copied() {
             image.set_pixel(x, y, old);
         }
 
@@ -84,17 +78,13 @@ impl<Pixel> SparseImageUndoer<Pixel> {
     pub fn redo<I>(&mut self, image: &mut I)
     where
         I: Image<Pixel = Pixel> + ?Sized,
-        I::Pixel: PartialEq + Copy,
+        I::Pixel: Copy,
     {
         let Some(frame) = self.redo.pop() else {
             return;
         };
 
-        for (x, y, old, new) in frame.iter().copied() {
-            debug_assert!(
-                old == image.get_pixel(x, y),
-                "Redo History did not match canvas!"
-            );
+        for (x, y, _old, new) in frame.iter().copied() {
             image.set_pixel(x, y, new);
         }
 
@@ -126,7 +116,7 @@ pub struct UndoChangeTracker<'image, 'undoer, I: Image + ?Sized> {
 impl<I> Image for UndoChangeTracker<'_, '_, I>
 where
     I: Image + ?Sized,
-    I::Pixel: Copy + PartialEq,
+    I::Pixel: Copy
 {
     type Pixel = I::Pixel;
     fn set_pixel(&mut self, x: isize, y: isize, px: Self::Pixel) {

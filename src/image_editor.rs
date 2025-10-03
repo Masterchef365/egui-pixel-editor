@@ -59,7 +59,7 @@ impl<Pixel: Send + Sync + 'static> ImageEditorState<Pixel> {
         brush_shape: Brush,
     ) -> egui::Response
     where
-        Pixel: PartialEq + Copy,
+        Pixel: Copy,
     {
         let (x_range, y_range) = image.image_boundaries();
         let image_rect = Rect::from_min_max(
