@@ -1,6 +1,6 @@
 use egui::{Color32, Id, Ui, Widget};
 
-use crate::{Brush, image::Image, image_editor::ImageEditorState};
+use crate::{image::Image, image_editor::ImageEditorState, Brush};
 
 /// Image editor widget
 pub struct ImageEditor<'image, I: Image> {
@@ -8,6 +8,7 @@ pub struct ImageEditor<'image, I: Image> {
     id_salt: Option<Id>,
     brush_value: I::Pixel,
     brush_shape: Brush,
+    force_image_update: bool,
 }
 
 impl<'image, I: Image> ImageEditor<'image, I> {
@@ -20,6 +21,7 @@ impl<'image, I: Image> ImageEditor<'image, I> {
                 interpolate: true,
             },
             brush_value,
+            force_image_update: false,
         }
     }
 }
@@ -37,18 +39,30 @@ impl<I: Image> ImageEditor<'_, I> {
     {
         let id = self.get_id(ui);
 
-        let resp = ImageEditorState::<I::Pixel>::load_or_default(ui.ctx(), id)
-            .lock()
-            .unwrap()
-            .edit(
-                ui,
-                self.image,
-                coloring_func,
-                self.brush_value,
-                self.brush_shape,
-            );
+        let state = ImageEditorState::<I::Pixel>::load_or_default(ui.ctx(), id);
+        let mut state = state.lock().unwrap();
+
+        let resp = state.edit(
+            ui,
+            self.image,
+            coloring_func,
+            self.brush_value,
+            self.brush_shape,
+        );
+
+        if self.force_image_update {
+            state.force_image_update();
+        }
 
         resp
+    }
+
+    /// Informs the backend that the image has been updated without any drawing having
+    /// taken place.
+    /// Currently, this dumps all undo/redo history.
+    pub fn force_image_update(mut self, force: bool) -> Self {
+        self.force_image_update = force;
+        self
     }
 
     pub fn id_salt(mut self, id_salt: impl std::hash::Hash) -> Self {
